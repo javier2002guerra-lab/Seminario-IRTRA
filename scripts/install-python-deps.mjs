@@ -5,7 +5,7 @@ const python = process.platform === "win32" ? "python" : "python3";
 const target = path.resolve(".python-packages");
 const result = spawnSync(
   python,
-  ["-m", "pip", "install", "--disable-pip-version-check", "--target", target, "-r", "requirements.txt"],
+  ["-m", "pip", "install", "--disable-pip-version-check", "--target", target, "-r", "requirements-excel.txt"],
   { stdio: "inherit", windowsHide: true },
 );
 
