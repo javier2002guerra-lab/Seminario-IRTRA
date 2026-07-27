@@ -4,8 +4,6 @@ import path from "node:path";
 
 const python = process.platform === "win32" ? "python" : "python3";
 const target = path.resolve(".python-packages");
-if (process.platform !== "win32")
-  fs.rmSync(path.resolve(".venv"), { recursive: true, force: true });
 const result = spawnSync(
   python,
   ["-m", "pip", "install", "--disable-pip-version-check", "--target", target, "-r", "excel-deps.lock"],
@@ -14,3 +12,5 @@ const result = spawnSync(
 
 if (result.status !== 0)
   throw new Error("No fue posible instalar las dependencias necesarias para exportar Excel.");
+if (process.platform !== "win32")
+  fs.rmSync(path.resolve(".venv"), { recursive: true, force: true });
