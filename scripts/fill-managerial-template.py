@@ -60,6 +60,10 @@ def clear_historical_data(workbook):
                     cell.value=None
                 elif isinstance(cell.value,str) and re.fullmatch(r"=\+?\d+(?:[+\-]\d+)*",cell.value.replace(" ","")):
                     cell.value="=0"
+                elif isinstance(cell.value,str) and cell.value.startswith("=") and "/" in cell.value and not norm(cell.value).startswith("iferror"):
+                    # Empty report sections legitimately have a zero denominator.
+                    # Keep charts usable instead of exposing #DIV/0! in the workbook.
+                    cell.value=f"=IFERROR({cell.value[1:]},0)"
     # This sheet is a free-text historical list, not a catalog of labels.
     if "OTRAS SUGERENCIAS" in workbook.sheetnames:
         sheet=workbook["OTRAS SUGERENCIAS"]
