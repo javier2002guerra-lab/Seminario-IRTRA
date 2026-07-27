@@ -1,9 +1,10 @@
-import json, re, shutil, sys, unicodedata
+import json, re, shutil, sys, unicodedata, zipfile
+import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 from openpyxl import load_workbook
-from openpyxl.utils import column_index_from_string
+from openpyxl.utils import column_index_from_string, get_column_letter
 
 MONTHS = {"enero":1,"febrero":2,"marzo":3,"abril":4,"mayo":5,"junio":6,"julio":7,"agosto":8,"septiembre":9,"octubre":10,"noviembre":11,"diciembre":12}
 SERVICE_COLUMNS = {
@@ -57,6 +58,8 @@ def clear_historical_data(workbook):
             for cell in row:
                 if isinstance(cell.value,(int,float)) and not isinstance(cell.value,bool):
                     cell.value=None
+                elif isinstance(cell.value,str) and re.fullmatch(r"=\+?\d+(?:[+\-]\d+)*",cell.value.replace(" ","")):
+                    cell.value=None
     # This sheet is a free-text historical list, not a catalog of labels.
     if "OTRAS SUGERENCIAS" in workbook.sheetnames:
         sheet=workbook["OTRAS SUGERENCIAS"]
@@ -69,11 +72,6 @@ def save_with_native_excel(template, workbook, output):
     This preserves the original XLSM package, including macros, charts and
     conditional-format extensions that openpyxl cannot round-trip.
     """
-    if sys.platform != "win32":
-        # Render runs on Linux. openpyxl keeps the workbook layout, charts,
-        # formulas and VBA package while replacing only the calculated cells.
-        workbook.save(output)
-        return
     draft=Path(output).with_suffix(".draft.xlsm")
     workbook.save(draft)
     original=load_workbook(template,keep_vba=True,data_only=False,read_only=True)
@@ -86,7 +84,12 @@ def save_with_native_excel(template, workbook, output):
             for col in range(1,max_col+1):
                 before=source.cell(row,col).value; after=target.cell(row,col).value
                 if before != after: changes.append((sheet,row,col,after))
-    original.close(); generated.close(); draft.unlink(missing_ok=True)
+    original.close(); generated.close()
+    if sys.platform != "win32":
+        patch_xlsm(template,output,changes)
+        draft.unlink(missing_ok=True)
+        return
+    draft.unlink(missing_ok=True)
     shutil.copy2(template,output)
     try:
         import win32com.client
@@ -99,6 +102,53 @@ def save_with_native_excel(template, workbook, output):
         try: excel.Quit()
         except Exception: pass
         raise RuntimeError("Microsoft Excel no pudo conservar la plantilla durante la exportación.")
+
+def patch_xlsm(template,output,changes):
+    ns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+    rel_ns="http://schemas.openxmlformats.org/package/2006/relationships"
+    doc_rel_ns="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+    with zipfile.ZipFile(template,"r") as package:
+        workbook_xml=ET.fromstring(package.read("xl/workbook.xml"))
+        rels_xml=ET.fromstring(package.read("xl/_rels/workbook.xml.rels"))
+        targets={node.attrib["Id"]:node.attrib["Target"] for node in rels_xml.findall(f"{{{rel_ns}}}Relationship")}
+        sheet_paths={}
+        for node in workbook_xml.find(f"{{{ns}}}sheets"):
+            target=targets[node.attrib[f"{{{doc_rel_ns}}}id"]].lstrip("/")
+            sheet_paths[node.attrib["name"]]=target if target.startswith("xl/") else f"xl/{target}"
+    grouped=defaultdict(list)
+    for sheet,row,col,value in changes: grouped[sheet_paths[sheet]].append((row,col,value))
+    ET.register_namespace("",ns)
+    with zipfile.ZipFile(template,"r") as source, zipfile.ZipFile(output,"w") as target:
+        for info in source.infolist():
+            content=source.read(info.filename)
+            if info.filename in grouped:
+                root=ET.fromstring(content)
+                sheet_data=root.find(f"{{{ns}}}sheetData")
+                rows={int(node.attrib["r"]):node for node in sheet_data.findall(f"{{{ns}}}row")}
+                for row_number,col_number,value in grouped[info.filename]:
+                    row_node=rows.get(row_number)
+                    if row_node is None:
+                        row_node=ET.SubElement(sheet_data,f"{{{ns}}}row",{"r":str(row_number)})
+                        rows[row_number]=row_node
+                    coordinate=f"{get_column_letter(col_number)}{row_number}"
+                    cell=next((node for node in row_node.findall(f"{{{ns}}}c") if node.attrib.get("r")==coordinate),None)
+                    if cell is None: cell=ET.SubElement(row_node,f"{{{ns}}}c",{"r":coordinate})
+                    for child in list(cell):
+                        if child.tag in {f"{{{ns}}}v",f"{{{ns}}}f",f"{{{ns}}}is"}: cell.remove(child)
+                    cell.attrib.pop("t",None)
+                    if value is None: continue
+                    if isinstance(value,bool):
+                        cell.attrib["t"]="b"; ET.SubElement(cell,f"{{{ns}}}v").text="1" if value else "0"
+                    elif isinstance(value,(int,float)):
+                        ET.SubElement(cell,f"{{{ns}}}v").text=str(value)
+                    elif isinstance(value,str) and value.startswith("="):
+                        ET.SubElement(cell,f"{{{ns}}}f").text=value[1:]
+                    else:
+                        cell.attrib["t"]="inlineStr"
+                        inline=ET.SubElement(cell,f"{{{ns}}}is")
+                        ET.SubElement(inline,f"{{{ns}}}t").text=str(value)
+                content=ET.tostring(root,encoding="utf-8",xml_declaration=True)
+            target.writestr(info,content)
 
 def main(template,data_path,output):
     rows=json.loads(Path(data_path).read_text(encoding="utf-8-sig"))
