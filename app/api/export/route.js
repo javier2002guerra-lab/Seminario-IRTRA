@@ -42,7 +42,15 @@ export async function GET(req) {
   try {
     fs.writeFileSync(input,JSON.stringify(payload),{encoding:"utf8",mode:0o600});
     const python = process.env.PYTHON_COMMAND || (process.platform === "win32" ? "python" : "python3");
-    const result = spawnSync(python,[path.join(root,"scripts","fill-managerial-template.py"),template,input,output],{cwd:root,encoding:"utf8",timeout:120000,windowsHide:true});
+    const pythonPackages = path.join(root, ".python-packages");
+    const pythonPath = [pythonPackages, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter);
+    const result = spawnSync(python,[path.join(root,"scripts","fill-managerial-template.py"),template,input,output],{
+      cwd:root,
+      encoding:"utf8",
+      timeout:120000,
+      windowsHide:true,
+      env:{...process.env,PYTHONPATH:pythonPath},
+    });
     if (result.status !== 0 || !fs.existsSync(output)) {
       console.error("Error al generar XLSM:",String(result.stderr || result.stdout).slice(0,2000));
       return NextResponse.json({error:"No fue posible llenar la plantilla gerencial. Verifique Python y openpyxl."},{status:500});
