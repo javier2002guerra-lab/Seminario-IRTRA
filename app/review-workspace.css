@@ -2,6 +2,8 @@
 .original-viewer { height: min(78vh, 900px); background: #263238; border-radius: 16px; overflow: auto; display: grid; place-items: center; }
 .original-viewer iframe { border: 0; width: 100%; height: 100%; }
 .original-viewer img { display: block; max-width: 100%; height: auto; margin: auto; }
+.viewer-message { display: grid; gap: 10px; max-width: 560px; padding: 28px; border-radius: 14px; background: #f4faf8; color: #173f47; text-align: center; }
+.viewer-error { background: #fff0ee; color: #8b2f27; }
 .review-low { background: #fee7e7; color: #b72f2f; margin-left: 8px; }
 .editable-fields label { display: grid; gap: 6px; font-weight: 650; }
 .editable-fields .input { width: 100%; min-width: 0; font-weight: 400; }

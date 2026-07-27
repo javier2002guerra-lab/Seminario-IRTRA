@@ -12,7 +12,14 @@ export async function GET(req, { params }) {
   if (!r) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
   if (r.stored_name.startsWith("PURGED-")) return NextResponse.json({ error: "El original fue eliminado por la política de retención." }, { status: 410 });
   const safe = path.basename(r.stored_name);
-  const file = fs.readFileSync(path.resolve(process.env.UPLOAD_DIR || "private_uploads", safe));
+  const storedFile = await get("SELECT content FROM survey_files WHERE survey_id=?", r.id);
+  const diskPath = path.resolve(process.env.UPLOAD_DIR || "private_uploads", safe);
+  const file = storedFile?.content || (fs.existsSync(diskPath) ? fs.readFileSync(diskPath) : null);
+  if (!file)
+    return NextResponse.json(
+      { error: "El archivo original no está disponible. Vuelva a escanearlo para restaurarlo." },
+      { status: 404 },
+    );
   await audit({ userId: user.id, action: "ORIGINAL_DOWNLOAD", entityType: "survey", entityId: r.id, ip: req.headers.get("x-forwarded-for") });
   return new NextResponse(file, { headers: { "content-type": r.mime_type, "content-disposition": `${new URL(req.url).searchParams.get("preview") === "1" ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(r.original_name)}`, "cache-control": "no-store" } });
 }

@@ -40,8 +40,16 @@ export async function POST(req) {
     try {
       const buffer = Buffer.from(await file.arrayBuffer());
       const meta = await validateFile(file.name, file.type, buffer);
-      if (await get("SELECT id FROM surveys WHERE sha256=?", meta.sha256))
-        throw new Error("Documento duplicado.");
+      const duplicate = await get("SELECT id FROM surveys WHERE sha256=?", meta.sha256);
+      if (duplicate) {
+        await run(
+          "INSERT INTO survey_files(survey_id,content) VALUES(?,?) ON CONFLICT(survey_id) DO UPDATE SET content=EXCLUDED.content",
+          duplicate.id,
+          buffer,
+        );
+        errors.push(`${file.name}: el original existente fue restaurado.`);
+        continue;
+      }
       const stored = saveOriginal(buffer, meta.ext);
       const info = await run(
         "INSERT INTO surveys(original_name,stored_name,mime_type,size,sha256,status) VALUES(?,?,?,?,?,?) RETURNING id",
@@ -53,6 +61,7 @@ export async function POST(req) {
         "En procesamiento",
       );
       const id = Number(info.lastInsertRowid);
+      await run("INSERT INTO survey_files(survey_id,content) VALUES(?,?)", id, buffer);
       await audit({
         userId: user.id,
         action: "DOCUMENT_UPLOAD",
