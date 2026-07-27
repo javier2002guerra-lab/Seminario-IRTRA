@@ -69,6 +69,11 @@ def save_with_native_excel(template, workbook, output):
     This preserves the original XLSM package, including macros, charts and
     conditional-format extensions that openpyxl cannot round-trip.
     """
+    if sys.platform != "win32":
+        # Render runs on Linux. openpyxl keeps the workbook layout, charts,
+        # formulas and VBA package while replacing only the calculated cells.
+        workbook.save(output)
+        return
     draft=Path(output).with_suffix(".draft.xlsm")
     workbook.save(draft)
     original=load_workbook(template,keep_vba=True,data_only=False,read_only=True)

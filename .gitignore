@@ -31,6 +31,7 @@ __pycache__/
 *.xlsm
 data/excel_templates/*
 !data/excel_templates/.gitkeep
+!data/excel_templates/INFORME GERENCIAL ENCUESTAS.xlsm
 configured-server*.log
 irtra-server*.log
 crear_osi_mensajeria.py
