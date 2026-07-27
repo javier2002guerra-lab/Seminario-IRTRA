@@ -110,12 +110,12 @@ export default async function Page({ searchParams }) {
         </select>
         <button className="btn">Filtrar</button>
       </form>
-      <form className="toolbar card" action="/api/export" method="get">
+      <form className="toolbar card" action="/api/reports/export" method="get">
         <b>Exportar datos actuales</b>
         <label>Desde <input className="input" type="date" name="from" defaultValue={p.from || monthAgo} required /></label>
         <label>Hasta <input className="input" type="date" name="to" defaultValue={p.to || today} required /></label>
         <span className="muted">Rango permitido: de 1 día hasta 1 mes (31 días).</span>
-        <button className="btn secondary" type="submit">Exportar XLSM</button>
+        <button className="btn secondary" type="submit">Exportar Excel</button>
       </form>
       <div className="card">
         <table>
