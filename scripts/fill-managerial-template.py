@@ -1,4 +1,4 @@
-import json, re, shutil, sys, unicodedata, zipfile
+import io, json, re, shutil, sys, unicodedata, zipfile
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from datetime import datetime
@@ -59,7 +59,7 @@ def clear_historical_data(workbook):
                 if isinstance(cell.value,(int,float)) and not isinstance(cell.value,bool):
                     cell.value=None
                 elif isinstance(cell.value,str) and re.fullmatch(r"=\+?\d+(?:[+\-]\d+)*",cell.value.replace(" ","")):
-                    cell.value=None
+                    cell.value="=0"
     # This sheet is a free-text historical list, not a catalog of labels.
     if "OTRAS SUGERENCIAS" in workbook.sheetnames:
         sheet=workbook["OTRAS SUGERENCIAS"]
@@ -112,7 +112,16 @@ def patch_xlsm(template,output,changes):
         for info in source.infolist():
             content=source.read(info.filename)
             if info.filename in grouped:
+                namespaces=dict(item for _,item in ET.iterparse(io.BytesIO(content),events=("start-ns",)))
+                for prefix,uri in namespaces.items():
+                    if prefix != "xml": ET.register_namespace(prefix,uri)
                 root=ET.fromstring(content)
+                used_uris=set()
+                for node in root.iter():
+                    for name in (node.tag,*node.attrib):
+                        if name.startswith("{"): used_uris.add(name[1:].split("}",1)[0])
+                for prefix,uri in namespaces.items():
+                    if prefix and uri not in used_uris: root.set(f"xmlns:{prefix}",uri)
                 sheet_data=root.find(f"{{{ns}}}sheetData")
                 rows={int(node.attrib["r"]):node for node in sheet_data.findall(f"{{{ns}}}row")}
                 for row_number,col_number,value in grouped[info.filename]:
@@ -137,6 +146,14 @@ def patch_xlsm(template,output,changes):
                         cell.attrib["t"]="inlineStr"
                         inline=ET.SubElement(cell,f"{{{ns}}}is")
                         ET.SubElement(inline,f"{{{ns}}}t").text=str(value)
+                for row_node in sheet_data.findall(f"{{{ns}}}row"):
+                    cells=row_node.findall(f"{{{ns}}}c")
+                    for cell in cells: row_node.remove(cell)
+                    cells.sort(key=lambda cell: column_index_from_string(re.match(r"[A-Z]+",cell.attrib["r"]).group()))
+                    for cell in cells: row_node.append(cell)
+                ordered_rows=sheet_data.findall(f"{{{ns}}}row")
+                for row_node in ordered_rows: sheet_data.remove(row_node)
+                for row_node in sorted(ordered_rows,key=lambda node:int(node.attrib["r"])): sheet_data.append(row_node)
                 content=ET.tostring(root,encoding="utf-8",xml_declaration=True)
             target.writestr(info,content)
 
