@@ -1,0 +1,65 @@
+services:
+  - type: web
+    name: irtra-encuestas
+    runtime: node
+    plan: starter
+    region: oregon
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: npm run db:migrate && npm start
+    healthCheckPath: /login
+    autoDeployTrigger: commit
+    domains:
+      - irtraencuestas.org
+    disk:
+      name: irtra-documentos
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BIND_HOST
+        value: 0.0.0.0
+      - key: APP_BASE_URL
+        value: https://irtraencuestas.org
+      - key: EXTERNAL_TLS_TERMINATION
+        value: "true"
+      - key: TRUST_PROXY
+        value: "true"
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: SESSION_TTL
+        value: 8h
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: CSRF_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: irtra-encuestas-db
+          property: connectionString
+      - key: PGSSL
+        value: "false"
+      - key: UPLOAD_DIR
+        value: /var/data/uploads
+      - key: SCAN_WATCH_ENABLED
+        value: "false"
+      - key: SUPERUSER_EMAIL
+        value: admin@irtraencuestas.org
+      - key: SUPERUSER_PASSWORD
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-5.5
+      - key: OPENAI_TIMEOUT_MS
+        value: "90000"
+
+databases:
+  - name: irtra-encuestas-db
+    plan: basic-256mb
+    region: oregon
+    databaseName: irtra_encuestas
+    user: irtra
+    postgresMajorVersion: "17"
+    ipAllowList: []

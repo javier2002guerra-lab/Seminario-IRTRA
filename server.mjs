@@ -1,3 +1,4 @@
+import http from 'node:http';
 import https from 'node:https';
 import fs from 'node:fs';
 import next from 'next';
@@ -10,9 +11,16 @@ const app = next({ dev });
 const handle = app.getRequestHandler();
 await app.prepare();
 startScannerWatcher();
-const key = fs.readFileSync(process.env.HTTPS_KEY_PATH || 'certs/localhost-key.pem');
-const cert = fs.readFileSync(process.env.HTTPS_CERT_PATH || 'certs/localhost.pem');
 const host = process.env.BIND_HOST || '127.0.0.1';
-https.createServer({ key, cert, minVersion: 'TLSv1.2' }, (req, res) => handle(req, res)).listen(Number(process.env.PORT || 3443), host, () => {
-  console.log(`IRTRA Calidad IA disponible en https://${host}:${process.env.PORT || 3443}`);
+const port = Number(process.env.PORT || 3443);
+const externalTls = process.env.EXTERNAL_TLS_TERMINATION === 'true' || Boolean(process.env.RENDER);
+const server = externalTls
+  ? http.createServer((req, res) => handle(req, res))
+  : https.createServer({
+      key: fs.readFileSync(process.env.HTTPS_KEY_PATH || 'certs/localhost-key.pem'),
+      cert: fs.readFileSync(process.env.HTTPS_CERT_PATH || 'certs/localhost.pem'),
+      minVersion: 'TLSv1.2',
+    }, (req, res) => handle(req, res));
+server.listen(port, host, () => {
+  console.log(`IRTRA disponible en ${externalTls ? 'http' : 'https'}://${host}:${port}`);
 });
