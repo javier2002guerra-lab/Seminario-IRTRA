@@ -66,6 +66,50 @@ def clear_historical_data(workbook):
         for row in range(4,sheet.max_row+1):
             for column in (1,2,4,5):
                 sheet.cell(row,column).value=None
+    clear_legacy_case_tables(workbook)
+
+def clear_pairs(workbook,sheet_name,pairs):
+    sheet=workbook[sheet_name]
+    for label_col,value_col,start,end in pairs:
+        for row in range(start,end+1):
+            sheet.cell(row,label_col).value=None
+            sheet.cell(row,value_col).value="=0"
+
+def clear_legacy_case_tables(workbook):
+    clear_pairs(workbook,"Comentarios Negativos en Rest",[
+        (2,3,3,13),(6,7,3,13),(10,11,3,13),(14,15,3,13),(18,19,6,13)])
+    clear_pairs(workbook,"Coment Negativos snackBovedas",[
+        (1,2,6,9),(5,6,6,9),(9,10,6,9),(1,2,13,18),(5,6,13,16)])
+    clear_pairs(workbook,"Comentarios Negativos en Hotele",[
+        (1,2,4,30),(5,6,4,32),(9,10,4,30),(13,14,4,34),(17,18,4,36),(22,23,4,13)])
+    clear_pairs(workbook,"Comentarios Negativos en Corozo",[(2,3,4,12)])
+    clear_pairs(workbook,"COMENTARIOS NEGATIVOS ADMON",[
+        (1,2,4,7),(5,6,4,7),(9,10,4,14),(13,14,4,8),(1,2,23,26),(5,6,23,26)])
+    clear_pairs(workbook,"DISTRIBUCION DE PLAGAS",[
+        (2,3,3,9),(6,7,3,9),(10,11,3,9),(14,15,3,9),
+        (2,3,26,32),(6,7,26,32),(10,11,26,32),(14,15,26,32)])
+    clear_pairs(workbook,"QUEJAS ACUMULADAS POR AREA",[
+        (1,3,4,36),(5,7,4,14),(9,11,4,9),(13,15,4,12),(18,20,4,13)])
+
+def write_current_complaints(workbook,rows):
+    groups={
+        "hotel":(1,3,4,36),"restaurant":(5,7,4,14),"snack":(9,11,4,9),
+        "club":(13,15,4,12),"reception":(18,20,4,13)}
+    counters=defaultdict(Counter)
+    for row in rows:
+        if row.get("category") not in ("Queja","Mixta"): continue
+        topic=(row.get("primary_topic") or "Sin tema especificado").strip()
+        area=" ".join(norm(value) for value in (row.get("areas") or []))
+        key=next((name for name,terms in {
+            "hotel":("habitacion","hotel","cuarto"),"restaurant":("restaurante","alimento"),
+            "snack":("snack","punto de venta"),"club":("club","corozos"),
+            "reception":("recepcion","reservacion")}.items() if any(term in area for term in terms)),None)
+        if key: counters[key][topic]+=1
+    sheet=workbook["QUEJAS ACUMULADAS POR AREA"]
+    for key,(label_col,count_col,start,end) in groups.items():
+        for row_number,(topic,count) in zip(range(start,end+1),counters[key].most_common(end-start+1)):
+            sheet.cell(row_number,label_col).value=topic
+            sheet.cell(row_number,count_col).value=f"={count}"
 
 def save_with_native_excel(template, workbook, output, original_values):
     """Use openpyxl only to calculate changed cells, then write them with Excel.
@@ -162,6 +206,7 @@ def main(template,data_path,output):
     wb=load_workbook(template,keep_vba=True,data_only=False)
     original_values={(sheet.title,cell.row,cell.column):cell.value for sheet in wb.worksheets for row in sheet.iter_rows() for cell in row if cell.value is not None}
     clear_historical_data(wb)
+    write_current_complaints(wb,rows)
     monthly=defaultdict(lambda:{"affiliate":Counter(),"reason":Counter(),"recommend":Counter(),"resolved":Counter(),"collab":Counter(),"attendant":Counter(),"category":Counter(),"services":defaultdict(Counter),"dept_s":Counter(),"dept_q":Counter()})
     suggestions=Counter(); complaints=Counter(); venue_services=defaultdict(lambda:defaultdict(lambda:defaultdict(Counter))); venue_negative=defaultdict(Counter)
     for row in rows:
