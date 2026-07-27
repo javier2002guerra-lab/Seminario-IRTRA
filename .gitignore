@@ -5,6 +5,7 @@ __pycache__/
 .env.local
 .env.*.local
 .env.node
+.env.scanner.local
 node_modules/
 certs/*.pem
 *.key

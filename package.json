@@ -12,6 +12,7 @@
     "reprocess": "node --env-file-if-exists=.env.local scripts/reprocess.mjs",
     "sla:monitor": "node --env-file-if-exists=.env.local scripts/sla-monitor.mjs",
     "scanner": "node --env-file-if-exists=.env.local scripts/scanner.mjs",
+    "scanner:remote": "node --env-file-if-exists=.env.scanner.local scripts/scanner-upload.mjs",
     "certs": "node scripts/generate-certs.mjs",
     "test": "node --env-file-if-exists=.env.local --test tests/*.test.mjs",
     "test:e2e": "playwright test"

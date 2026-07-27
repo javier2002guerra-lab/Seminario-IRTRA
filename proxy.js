@@ -1,4 +1,34 @@
-import {NextResponse} from 'next/server';import {jwtVerify} from 'jose';
-const publicPaths=['/login','/api/auth/login','/_next','/images','/favicon.ico'];
-export async function proxy(req){if(!['GET','HEAD','OPTIONS'].includes(req.method)){const origin=req.headers.get('origin');try{if(!origin||new URL(origin).host!==req.headers.get('host'))return NextResponse.json({error:'Origen no válido.'},{status:403});}catch{return NextResponse.json({error:'Origen no válido.'},{status:403});}}const res=NextResponse.next();res.headers.set('Cache-Control','no-store');if(publicPaths.some(p=>req.nextUrl.pathname.startsWith(p)))return res;const token=req.cookies.get('irtra_session')?.value;try{await jwtVerify(token,new TextEncoder().encode(process.env.SESSION_SECRET||'solo-desarrollo-cambiar-secreto-de-64-caracteres-antes-de-produccion'));return res;}catch{if(req.nextUrl.pathname.startsWith('/api/'))return NextResponse.json({error:'No autorizado'},{status:401});return NextResponse.redirect(new URL('/login',req.url));}}
-export const config={matcher:['/((?!_next/static|_next/image).*)']};
+import { NextResponse } from "next/server";
+import { jwtVerify } from "jose";
+
+const publicPaths = ["/login", "/api/auth/login", "/api/scanner/ingest", "/_next", "/images", "/favicon.ico"];
+
+export async function proxy(req) {
+  const scannerRequest = req.nextUrl.pathname === "/api/scanner/ingest";
+  if (!scannerRequest && !["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    const origin = req.headers.get("origin");
+    try {
+      if (!origin || new URL(origin).host !== req.headers.get("host"))
+        return NextResponse.json({ error: "Origen no válido." }, { status: 403 });
+    } catch {
+      return NextResponse.json({ error: "Origen no válido." }, { status: 403 });
+    }
+  }
+  const response = NextResponse.next();
+  response.headers.set("Cache-Control", "no-store");
+  if (publicPaths.some((path) => req.nextUrl.pathname.startsWith(path))) return response;
+  const token = req.cookies.get("irtra_session")?.value;
+  try {
+    await jwtVerify(
+      token,
+      new TextEncoder().encode(process.env.SESSION_SECRET || "solo-desarrollo-cambiar-secreto-de-64-caracteres-antes-de-produccion"),
+    );
+    return response;
+  } catch {
+    if (req.nextUrl.pathname.startsWith("/api/"))
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+}
+
+export const config = { matcher: ["/((?!_next/static|_next/image).*)"] };
