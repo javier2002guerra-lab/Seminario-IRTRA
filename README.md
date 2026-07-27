@@ -1,5 +1,9 @@
 # IRTRA Calidad IA
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2FAugustoReyes21%2FIRTRA)
+
+El Blueprint de Render crea el servicio, una base de datos privada, un disco persistente, secretos aleatorios y configura `irtraencuestas.org`. Durante la instalación, Render solicitará únicamente la contraseña inicial del Administrador y la clave del servicio de análisis.
+
 Producto local Next.js para recepción segura, análisis inteligente, priorización y seguimiento de encuestas IRTRA.
 
 ## Instalación en esta computadora
