@@ -1,0 +1,23 @@
+{% extends "portal_base.html" %}
+{% block portal_content %}
+  <section class="page-grid">
+    <article class="module-card sheets-shell">
+      <div class="module-header">
+        <div>
+          <p class="eyebrow">Formato espejo</p>
+          <h2>Boletas digitalizadas</h2>
+        </div>
+        <span class="module-chip">Últimos registros</span>
+      </div>
+      <div class="forms-gallery">
+        {% for form in digital_forms %}
+          {% include "_digital_sheet.html" %}
+        {% else %}
+          <div class="empty-sheet-state">
+            Todavía no hay boletas procesadas para mostrar en formato digital.
+          </div>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+{% endblock %}

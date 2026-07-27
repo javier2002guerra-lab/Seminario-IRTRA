@@ -1,0 +1,95 @@
+{% extends "portal_base.html" %}
+{% block portal_content %}
+  <section class="page-grid dual-grid">
+    <article class="module-card">
+      <div class="module-header">
+        <div>
+          <p class="eyebrow">Catálogo operativo</p>
+          <h2>Servicios y departamentos</h2>
+        </div>
+      </div>
+      <form action="/catalog" method="post" class="catalog-form">
+        <label>
+          <span>Servicios</span>
+          <textarea name="services_text" rows="16" required>{% for item in catalog.services %}{{ item }}{% if not loop.last %}
+{% endif %}{% endfor %}</textarea>
+        </label>
+        <label>
+          <span>Departamentos</span>
+          <textarea name="departments_text" rows="16" placeholder="Uno por línea">{% for item in catalog.departments %}{{ item }}{% if not loop.last %}
+{% endif %}{% endfor %}</textarea>
+        </label>
+        <button class="button primary" type="submit">Guardar catálogo</button>
+      </form>
+    </article>
+
+    <article class="module-card">
+      <div class="module-header">
+        <div>
+          <p class="eyebrow">Estado de configuración</p>
+          <h2>Resumen técnico</h2>
+        </div>
+      </div>
+      <div class="signal-list soft">
+        <div class="signal-item">
+          <span>Servicios cargados</span>
+          <strong>{{ catalog.services|length }}</strong>
+        </div>
+        <div class="signal-item">
+          <span>Departamentos</span>
+          <strong>{{ catalog.departments|length }}</strong>
+        </div>
+        <div class="signal-item">
+          <span>Escáner</span>
+          <strong>{{ "Activo" if scanner_status.available else "No detectado" }}</strong>
+        </div>
+      </div>
+      <p class="lede compact">
+        Mantén aquí alineado el catálogo con la boleta física para que la clasificación y la visualización
+        de la encuesta se mantengan consistentes.
+      </p>
+    </article>
+  </section>
+
+  <section class="page-grid dual-grid">
+    <article class="module-card">
+      <div class="module-header">
+        <div>
+          <p class="eyebrow">Plantillas gerenciales</p>
+          <h2>Subir plantilla XLSM</h2>
+        </div>
+      </div>
+      <form action="/templates/upload" method="post" enctype="multipart/form-data" class="stack-form">
+        <label class="file-drop">
+          <span>Selecciona el archivo gerencial `.xlsm` original</span>
+          <input type="file" name="file" accept=".xlsm" required />
+        </label>
+        <button class="button primary" type="submit">Guardar plantilla</button>
+      </form>
+      <p class="lede compact">
+        La exportación solo utiliza estas plantillas. El sistema llenará ahí los datos ya clasificados por la IA.
+      </p>
+    </article>
+
+    <article class="module-card">
+      <div class="module-header">
+        <div>
+          <p class="eyebrow">Plantillas disponibles</p>
+          <h2>Instaladas en el proyecto</h2>
+        </div>
+      </div>
+      <div class="signal-list soft">
+        {% for template in excel_templates %}
+          <div class="signal-item">
+            <span>{{ template.name }}</span>
+            <strong>{{ template.year or "Sin año" }}</strong>
+          </div>
+        {% else %}
+          <div class="empty-sheet-state">
+            Aún no hay plantillas cargadas en `data/excel_templates`.
+          </div>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+{% endblock %}

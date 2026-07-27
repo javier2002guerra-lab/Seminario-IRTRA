@@ -1,0 +1,54 @@
+{% extends "portal_base.html" %}
+{% block portal_content %}
+  <section class="page-grid dual-grid">
+    <article class="module-card">
+      <div class="module-header">
+        <div>
+          <p class="eyebrow">Carga documental</p>
+          <h2>Subir boletas</h2>
+        </div>
+        <span class="module-chip">PDF / JPG / PNG</span>
+      </div>
+      <form action="/upload" enctype="multipart/form-data" method="post" class="stack-form">
+        <label class="file-drop file-drop-tech">
+          <span>Arrastra aquí las encuestas o selecciónalas</span>
+          <input id="files" name="files" type="file" accept=".pdf,.jpg,.jpeg,.png" multiple required />
+        </label>
+        <label class="toggle">
+          <input type="checkbox" name="intake_mode" value="scanner" />
+          <span>Modo escáner: optimiza lotes escaneados y acelera el flujo de digitalización.</span>
+        </label>
+        <button class="button primary" type="submit">Procesar documentos</button>
+      </form>
+    </article>
+
+    <article class="module-card">
+      <div class="module-header">
+        <div>
+          <p class="eyebrow">Captura física</p>
+          <h2>Escáner</h2>
+        </div>
+      </div>
+      <div class="scanner-box scanner-box-standalone">
+        <p>{{ scanner_status.message }}</p>
+        {% if scanner_status.available %}
+          <form action="/scanner/capture" method="post">
+            <button class="button secondary" type="submit">Capturar desde escáner</button>
+          </form>
+        {% else %}
+          <div class="hint">Si instalas un backend compatible con `scanimage`, esta app puede capturar directamente.</div>
+        {% endif %}
+      </div>
+      <div class="signal-list soft">
+        <div class="signal-item">
+          <span>Procesados</span>
+          <strong>{{ payload.summary.completed }}</strong>
+        </div>
+        <div class="signal-item">
+          <span>En cola</span>
+          <strong>{{ payload.summary.processing }}</strong>
+        </div>
+      </div>
+    </article>
+  </section>
+{% endblock %}

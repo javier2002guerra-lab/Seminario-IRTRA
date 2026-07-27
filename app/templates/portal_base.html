@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="portal-layout">
+    <aside class="portal-sidebar">
+      <div class="brand-panel">
+        <div class="brand-mark">IR</div>
+        <div class="brand-copy">
+          <p class="eyebrow">IRTRA Calidad IA</p>
+          <h2>{{ app_name }}</h2>
+          <p class="brand-description">Digitalización, lectura y análisis de boletas de satisfacción.</p>
+        </div>
+      </div>
+
+      <section class="sidebar-section">
+        <p class="sidebar-heading">Navegación</p>
+        <nav class="portal-nav" aria-label="Navegación principal">
+          {% for item in portal_nav %}
+            <a href="{{ item.href }}" class="portal-link {% if active_page == item.key %}active{% endif %}">
+              <strong>{{ item.label }}</strong>
+              <span class="portal-link-tag">{{ item.tag }}</span>
+            </a>
+          {% endfor %}
+        </nav>
+      </section>
+
+      <section class="sidebar-section">
+        <p class="sidebar-heading">Estado general</p>
+        <div class="sidebar-metrics">
+          <article class="sidebar-metric-card">
+            <span>Total</span>
+            <strong>{{ payload.summary.total }}</strong>
+            <small>Encuestas registradas</small>
+          </article>
+          <article class="sidebar-metric-card">
+            <span>Procesados</span>
+            <strong>{{ payload.summary.completed }}</strong>
+            <small>Listos para análisis</small>
+          </article>
+          <article class="sidebar-metric-card">
+            <span>Quejas</span>
+            <strong>{{ payload.summary.complaints }}</strong>
+            <small>Casos clasificados</small>
+          </article>
+        </div>
+      </section>
+
+      <section class="sidebar-footer">
+        <p>Portal documental para encuestas escaneadas.</p>
+        <a href="/forms">Abrir boletas digitalizadas</a>
+      </section>
+    </aside>
+
+    <section class="portal-main">
+      <header class="portal-hero">
+        <div class="hero-copy">
+          <p class="eyebrow">{{ page_eyebrow }}</p>
+          <h1>{{ page_title }}</h1>
+          <p class="lede">{{ page_description }}</p>
+        </div>
+        <div class="portal-hero-actions">
+          <a class="button ghost" href="/export/excel">Exportar XLSM</a>
+          <a class="button secondary" href="/forms">Ver boletas</a>
+        </div>
+      </header>
+
+      {% if message %}
+        <div class="flash flash-{{ kind }}">{{ message }}</div>
+      {% endif %}
+
+      <div class="page-stack">
+        {% block portal_content %}{% endblock %}
+      </div>
+    </section>
+  </div>
+{% endblock %}

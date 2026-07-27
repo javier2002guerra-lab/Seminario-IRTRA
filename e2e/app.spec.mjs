@@ -1,0 +1,195 @@
+import { test, expect } from "@playwright/test";
+import { run, get } from "../lib/db.js";
+async function login(page) {
+  await page.goto("/login");
+  await page.locator('input[name="email"]').fill("admin@irtra.local");
+  await page.locator('input[name="password"]').fill("Cambiar-Ahora-2026!");
+  await page.getByRole("button", { name: "Ingresar al sistema" }).click();
+  await expect(page).toHaveURL("https://localhost:3443/");
+}
+test("protege la aplicación y permite navegar al superusuario", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/login$/);
+  await login(page);
+  await expect(
+    page.getByRole("heading", { name: "Resumen ejecutivo" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: /Carga documental/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "Carga de encuestas" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: /Usuarios/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "Usuarios y roles" }),
+  ).toBeVisible();
+  await page.getByRole("link", { name: /Áreas y responsables/ }).click();
+  await expect(
+    page.getByRole("heading", { name: "Áreas y responsables" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Salir" }).click();
+  await expect(page).toHaveURL(/\/login$/);
+});
+test("edita, confirma, reabre y elimina una encuesta con auditoría", async ({
+  page,
+}) => {
+  const sha = `workflow-${Date.now()}`,
+    created = await run(
+      "INSERT INTO surveys(original_name,stored_name,mime_type,size,sha256,status,extracted_data) VALUES(?,?,?,?,?,'Pendiente de revisión','{}') RETURNING id",
+      "flujo-prueba.png",
+      `${sha}.png`,
+      "image/png",
+      100,
+      sha,
+    ),
+    id = created.lastInsertRowid;
+  try {
+    await login(page);
+    const numbered = Object.fromEntries(
+      Array.from({ length: 14 }, (_, i) => [
+        `item_${i + 1}`,
+        i === 13 ? "Mejorar iluminación" : "",
+      ]),
+    );
+    let r = await page.request.patch(`/api/surveys/${id}/data`, {
+      headers: { origin: "https://localhost:3443" },
+      data: {
+        general: { visitor_name: "Persona corregida" },
+        numbered,
+        ratings: [{ service: "Calidad de comida", rating: "Bueno" }],
+        restaurant: "La Hacienda",
+        hotel: "San Martín",
+        reason: "Corrección humana de prueba",
+      },
+    });
+    expect(r.status()).toBe(200);
+    let saved = await get(
+      "SELECT restaurant,hotel,validation_status,needs_review FROM surveys WHERE id=?",
+      id,
+    );
+    expect(saved).toMatchObject({
+      restaurant: "La Hacienda",
+      hotel: "San Martín",
+      validation_status: "En revisión",
+      needs_review: 1,
+    });
+    r = await page.request.post(`/api/surveys/${id}/validation`, {
+      headers: { origin: "https://localhost:3443" },
+      data: { action: "confirm", reason: "Información revisada correctamente" },
+    });
+    expect(r.status()).toBe(200);
+    saved = await get(
+      "SELECT validation_status,needs_review FROM surveys WHERE id=?",
+      id,
+    );
+    expect(saved).toMatchObject({
+      validation_status: "Confirmada",
+      needs_review: 0,
+    });
+    r = await page.request.post(`/api/surveys/${id}/validation`, {
+      headers: { origin: "https://localhost:3443" },
+      data: { action: "reopen", reason: "Se detectó una corrección adicional" },
+    });
+    expect(r.status()).toBe(200);
+    r = await page.request.delete(`/api/surveys/${id}`, {
+      headers: { origin: "https://localhost:3443" },
+      data: { reason: "Eliminar registro generado por prueba" },
+    });
+    expect(r.status()).toBe(200);
+    expect(await get("SELECT id FROM surveys WHERE id=?", id)).toBeUndefined();
+    expect(
+      (
+        await get(
+          "SELECT count(*)::int n FROM audit_log WHERE entity_id=? AND action='SURVEY_DELETE'",
+          String(id),
+        )
+      ).n,
+    ).toBe(1);
+  } finally {
+    if (await get("SELECT id FROM surveys WHERE id=?", id)) {
+      await run("DELETE FROM service_ratings WHERE survey_id=?", id);
+      await run("DELETE FROM corrections WHERE survey_id=?", id);
+      await run("DELETE FROM surveys WHERE id=?", id);
+    }
+  }
+});
+test("rechaza credenciales incorrectas sin filtrar información", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await page.locator('input[name="password"]').fill("incorrecta");
+  await page.getByRole("button", { name: "Ingresar al sistema" }).click();
+  await expect(page.getByText("Credenciales incorrectas.")).toBeVisible();
+});
+test("bloquea API sin sesión", async ({ request }) => {
+  const r = await request.get("/api/export", { maxRedirects: 0 });
+  expect([307, 401]).toContain(r.status());
+});
+test("genera internamente el informe gerencial", async ({ page }) => {
+  await login(page);
+  const response = await page.request.get("/api/export");
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-type"]).toContain("macroEnabled");
+  expect(response.headers()["content-disposition"]).toContain(
+    "INFORME GERENCIAL ENCUESTAS",
+  );
+  const body = await response.body();
+  expect(body.subarray(0,2).toString()).toBe("PK");
+  expect(body.length).toBeGreaterThan(100000);
+});
+test("carga encuestas y auditoría sin errores PostgreSQL", async ({ page }) => {
+  await login(page);
+  await page.goto("/encuestas");
+  await expect(
+    page.getByRole("heading", { name: "Encuestas procesadas" }),
+  ).toBeVisible();
+  await page.goto("/auditoria");
+  await expect(
+    page.getByRole("heading", { name: "Registro de auditoría" }),
+  ).toBeVisible();
+});
+test("muestra la boleta digital con el formato de la hoja física", async ({
+  page,
+}) => {
+  const sha = `e2e-${Date.now()}`,
+    created = await run(
+      "INSERT INTO surveys(original_name,stored_name,mime_type,size,sha256,status,category,priority,confidence,summary,extracted_data,needs_review) VALUES(?,?,?,?,?,'Procesado','Sugerencia','Bajo',0.92,'Caso de validación visual',?,0) RETURNING id",
+      "boleta-prueba.png",
+      `${sha}.png`,
+      "image/png",
+      100,
+      sha,
+      JSON.stringify({
+        general_data: {
+          visitor_name: "Visitante de prueba",
+          visit_date: "13/07/2026",
+        },
+        numbered_answers: { item_7: "Sí", item_14: "Mejorar señalización" },
+      }),
+    );
+  const id = created.lastInsertRowid;
+  try {
+    await run(
+      "INSERT INTO service_ratings(survey_id,service_name,rating,score,negative) VALUES(?,?,'Excelente',5,0)",
+      id,
+      "Cortesía del personal",
+    );
+    await login(page);
+    await page.goto(`/encuestas/${id}`);
+    await expect(
+      page.getByRole("heading", { name: "Boleta digitalizada" }),
+    ).toBeVisible();
+    await expect(page.getByText("Estimado visitante")).toBeVisible();
+    await expect(page.getByText("Visitante de prueba")).toBeVisible();
+    await expect(
+      page.getByRole("columnheader", { name: "Excelente" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("row", { name: /Cortesía del personal X/ }),
+    ).toBeVisible();
+  } finally {
+    await run("DELETE FROM service_ratings WHERE survey_id=?", id);
+    await run("DELETE FROM surveys WHERE id=?", id);
+  }
+});

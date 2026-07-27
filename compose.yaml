@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: irtra-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: irtra_calidad
+      POSTGRES_USER: irtra
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-irtra_local_change}
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - irtra_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U irtra -d irtra_calidad"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  irtra_postgres_data:

@@ -1,0 +1,108 @@
+{% set q = form.questionnaire %}
+{% set n = form.numbered %}
+<article class="digital-sheet">
+  <div class="sheet-band"></div>
+  <div class="sheet-toolbar">
+    <span class="sheet-status status-{{ form.record.status }}">{{ form.record.status }}</span>
+    <span class="sheet-file">{{ form.record.original_filename }}</span>
+  </div>
+  <header class="sheet-header">
+    <div class="sheet-marker">{{ form.record.department or "Área" }}</div>
+    <div class="sheet-title">
+      <h3>Estimado visitante</h3>
+      <p>
+        Agradecemos sus comentarios y/o sugerencias, los cuales servirán
+        para evaluar los estándares de servicio que le brindamos en su visita.
+      </p>
+    </div>
+    <div class="sheet-number-box">
+      <span>No.</span>
+      <strong>{{ q.get("document_number") or form.record.id }}</strong>
+    </div>
+  </header>
+
+  <div class="sheet-fields">
+    <div class="sheet-line"><b>1.</b><span>Nombre</span><i>{{ form.visitor_name or "Sin dato" }}</i></div>
+    <div class="sheet-line sheet-line-split">
+      <div><b>2.</b><span>Afiliado</span><i>{{ form.affiliate or "Sin dato" }}</i></div>
+      <div class="inline-checks">
+        <span>SI</span><em class="mini-check {{ 'checked' if q.get('affiliate_status') == 'si' else '' }}"></em>
+        <span>NO</span><em class="mini-check {{ 'checked' if q.get('affiliate_status') == 'no' else '' }}"></em>
+      </div>
+    </div>
+    <div class="sheet-line sheet-line-split">
+      <div><b>3.</b><span>Fecha</span><i>{{ form.visit_date or "Sin dato" }}</i></div>
+      <div><span>Teléfono</span><i>{{ q.get("phone") or "Sin dato" }}</i></div>
+    </div>
+    <div class="sheet-line"><b>4.</b><span>Correo electrónico</span><i>{{ q.get("email") or "Sin dato" }}</i></div>
+    <div class="sheet-line"><b>5.</b><span>Razón de su visita</span><i>{{ q.get("visit_reason") or n.get("item_5") or "Sin dato" }}</i></div>
+  </div>
+
+  <div class="sheet-reasons">
+    <div class="reason-item"><em class="mini-check {{ 'checked' if form.contexts.hospedaje else '' }}"></em><span>Huésped de los Hostales</span></div>
+    <div class="reason-item room-badge"><span>No. Habitación</span><strong>{{ form.room_number or "Sin dato" }}</strong></div>
+    <div class="reason-item"><em class="mini-check {{ 'checked' if form.contexts.evento else '' }}"></em><span>Evento especial</span></div>
+    <div class="reason-item"><em class="mini-check {{ 'checked' if form.contexts.restaurante else '' }}"></em><span>Restaurante</span></div>
+    <div class="reason-item"><em class="mini-check {{ 'checked' if form.contexts.club else '' }}"></em><span>Visitas al Club Los Corozos</span></div>
+  </div>
+
+  <div class="sheet-section-title">
+    6. Califique marcando con una X los siguientes servicios según su nivel de calidad:
+  </div>
+  <div class="table-wrap sheet-matrix-wrap">
+    <table class="sheet-matrix">
+      <thead>
+        <tr>
+          <th>Servicios</th>
+          <th>Excelente</th>
+          <th>Bueno</th>
+          <th>Regular</th>
+          <th>Malo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in form.matrix_rows %}
+          <tr>
+            <td>{{ row.name }}</td>
+            <td class="matrix-cell">{{ 'X' if row.excelente else '' }}</td>
+            <td class="matrix-cell">{{ 'X' if row.bueno else '' }}</td>
+            <td class="matrix-cell">{{ 'X' if row.regular else '' }}</td>
+            <td class="matrix-cell">{{ 'X' if row.malo else '' }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sheet-questions">
+    <div class="sheet-line"><b>7.</b><span>¿Recomienda visitar Los Hostales?</span><i>{{ n.get("item_7") or q.get("recommends_hostales") or "Sin dato" }}</i></div>
+    <div class="sheet-line"><b>8.</b><span>¿Tuvo alguna dificultad en su visita?</span><i>{{ n.get("item_8") or q.get("had_difficulty") or "Sin dato" }}</i></div>
+    <div class="sheet-line"><b>9.</b><span>¿Cuál fue?</span><i>{{ n.get("item_9") or q.get("difficulty_detail") or "Sin dato" }}</i></div>
+    <div class="sheet-line"><b>10.</b><span>¿Le resolvieron el inconveniente en tiempo?</span><i>{{ n.get("item_10") or q.get("issue_resolved_in_time") or "Sin dato" }}</i></div>
+    <div class="sheet-line"><b>11.</b><span>¿Algún colaborador del IRTRA le causó inconvenientes?</span><i>{{ n.get("item_11") or q.get("collaborator_caused_issue") or "Sin dato" }}</i></div>
+  </div>
+
+  <div class="sheet-section-title">12. ¿Quién le atendió?</div>
+  <div class="attendant-grid">
+    <div class="reason-item"><em class="mini-check {{ 'checked' if form.roles.maletero else '' }}"></em><span>Maletero</span></div>
+    <div class="reason-item"><em class="mini-check {{ 'checked' if form.roles.cajero else '' }}"></em><span>Cajero</span></div>
+    <div class="reason-item"><em class="mini-check {{ 'checked' if form.roles.camarera else '' }}"></em><span>Camarera</span></div>
+    <div class="reason-item"><em class="mini-check {{ 'checked' if form.roles.masajista else '' }}"></em><span>Masajista</span></div>
+    <div class="reason-item"><em class="mini-check {{ 'checked' if form.roles.eventos else '' }}"></em><span>Personal de eventos</span></div>
+    <div class="reason-item"><em class="mini-check {{ 'checked' if form.roles.recepcionista else '' }}"></em><span>Recepcionista</span></div>
+    <div class="reason-item"><em class="mini-check {{ 'checked' if form.roles.mesero else '' }}"></em><span>Mesero</span></div>
+    <div class="reason-item"><em class="mini-check {{ 'checked' if form.roles.otro else '' }}"></em><span>Otro</span></div>
+  </div>
+
+  <div class="sheet-line"><b>13.</b><span>Nombre del colaborador que le atendió</span><i>{{ n.get("item_13") or q.get("attendant_name") or "Sin dato" }}</i></div>
+  <div class="sheet-line"><b>14.</b><span>¿Qué podemos hacer para mejorar su visita?</span><i>{{ n.get("item_14") or q.get("improvement_comment") or "Sin dato" }}</i></div>
+
+  <footer class="sheet-footer">
+    <div>
+      <strong>Clasificación:</strong> {{ form.record.primary_category }}
+      <span class="footer-sep">|</span>
+      <strong>Sentimiento:</strong> {{ form.record.sentiment }}
+    </div>
+    <a href="/records/{{ form.record.id }}">Ver detalle</a>
+  </footer>
+</article>

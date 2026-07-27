@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="hero compact">
+    <div>
+      <p class="eyebrow">Detalle del registro</p>
+      <h1>{{ record.original_filename }}</h1>
+      <p class="lede">Estado: {{ record.status }} | Departamento: {{ record.department }} | Clasificación: {{ record.primary_category }}</p>
+    </div>
+    <div class="hero-actions">
+      <a class="button ghost" href="/forms">Volver</a>
+      <a class="button secondary" href="/records/{{ record.id }}/download">Descargar original</a>
+    </div>
+  </section>
+
+  <section class="grid mid-grid">
+    <article class="panel">
+      <div class="panel-header">
+        <h2>Resumen ejecutivo</h2>
+      </div>
+      <p class="detail-text">{{ record.executive_summary or "Aún no hay resumen disponible." }}</p>
+      <div class="detail-meta">
+        <span>Sentimiento: {{ record.sentiment }}</span>
+        <span>Nivel global: {{ record.overall_quality_level }}</span>
+        <span>Score: {{ record.overall_quality_score if record.overall_quality_score is not none else "Sin dato" }}</span>
+      </div>
+      <h3>Conclusiones</h3>
+      <pre class="detail-pre">{{ record.conclusion_text or "Sin conclusiones." }}</pre>
+    </article>
+
+    <article class="panel">
+      <div class="panel-header">
+        <h2>Campos de la boleta</h2>
+      </div>
+      {% set q = analysis_payload.get("questionnaire", {}) %}
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            <tr><th>No. boleta</th><td>{{ q.get("document_number") or "Sin dato" }}</td></tr>
+            <tr><th>Visitante</th><td>{{ q.get("visitor_name") or "Sin dato" }}</td></tr>
+            <tr><th>Afiliado</th><td>{{ q.get("affiliate_text") or "Sin dato" }}</td></tr>
+            <tr><th>Estado afiliado</th><td>{{ q.get("affiliate_status") or "Sin dato" }}</td></tr>
+            <tr><th>Fecha</th><td>{{ q.get("visit_date") or "Sin dato" }}</td></tr>
+            <tr><th>Correo</th><td>{{ q.get("email") or "Sin dato" }}</td></tr>
+            <tr><th>Teléfono</th><td>{{ q.get("phone") or "Sin dato" }}</td></tr>
+            <tr><th>No. habitación</th><td>{{ q.get("room_number") or "Sin dato" }}</td></tr>
+            <tr><th>Razón de visita</th><td>{{ q.get("visit_reason") or "Sin dato" }}</td></tr>
+            <tr><th>Contexto</th><td>{{ q.get("selected_contexts", [])|join(", ") or "Sin dato" }}</td></tr>
+            <tr><th>¿Recomienda?</th><td>{{ q.get("recommends_hostales") or "Sin dato" }}</td></tr>
+            <tr><th>¿Tuvo dificultad?</th><td>{{ q.get("had_difficulty") or "Sin dato" }}</td></tr>
+            <tr><th>Detalle dificultad</th><td>{{ q.get("difficulty_detail") or "Sin dato" }}</td></tr>
+            <tr><th>¿Resolución a tiempo?</th><td>{{ q.get("issue_resolved_in_time") or "Sin dato" }}</td></tr>
+            <tr><th>¿Colaborador causó inconveniente?</th><td>{{ q.get("collaborator_caused_issue") or "Sin dato" }}</td></tr>
+            <tr><th>Cargo atendió</th><td>{{ q.get("attendant_role") or "Sin dato" }}</td></tr>
+            <tr><th>Nombre atendió</th><td>{{ q.get("attendant_name") or "Sin dato" }}</td></tr>
+            <tr><th>Mejora sugerida</th><td>{{ q.get("improvement_comment") or "Sin dato" }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <section class="grid">
+    <article class="panel">
+      <div class="panel-header">
+        <h2>Respuestas 1 al 14</h2>
+      </div>
+      {% set n = analysis_payload.get("numbered_answers", {}) %}
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            <tr><th>1. Nombre</th><td>{{ n.get("item_1") or "Sin dato" }}</td></tr>
+            <tr><th>2. Afiliado</th><td>{{ n.get("item_2") or "Sin dato" }}</td></tr>
+            <tr><th>3. Fecha</th><td>{{ n.get("item_3") or "Sin dato" }}</td></tr>
+            <tr><th>4. Contacto</th><td>{{ n.get("item_4") or "Sin dato" }}</td></tr>
+            <tr><th>5. Razón de visita</th><td>{{ n.get("item_5") or "Sin dato" }}</td></tr>
+            <tr><th>6. Servicios calificados</th><td>{{ n.get("item_6") or "Sin dato" }}</td></tr>
+            <tr><th>7. Recomienda visitar</th><td>{{ n.get("item_7") or "Sin dato" }}</td></tr>
+            <tr><th>8. Tuvo dificultad</th><td>{{ n.get("item_8") or "Sin dato" }}</td></tr>
+            <tr><th>9. ¿Cuál fue?</th><td>{{ n.get("item_9") or "Sin dato" }}</td></tr>
+            <tr><th>10. Resolución a tiempo</th><td>{{ n.get("item_10") or "Sin dato" }}</td></tr>
+            <tr><th>11. Colaborador causó inconveniente</th><td>{{ n.get("item_11") or "Sin dato" }}</td></tr>
+            <tr><th>12. Quién le atendió</th><td>{{ n.get("item_12") or "Sin dato" }}</td></tr>
+            <tr><th>13. Nombre del colaborador</th><td>{{ n.get("item_13") or "Sin dato" }}</td></tr>
+            <tr><th>14. Mejora sugerida</th><td>{{ n.get("item_14") or "Sin dato" }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <section class="grid mid-grid">
+    <article class="panel">
+      <div class="panel-header">
+        <h2>Servicios evaluados</h2>
+      </div>
+      <ul class="service-detail-list">
+        {% for service in record.services %}
+          <li>
+            <strong>{{ service.service_name }}</strong>
+            <span>{{ service.quality_level }}</span>
+            <em>{{ service.score if service.score is not none else "Sin dato" }}</em>
+            <p>{{ service.summary }}</p>
+          </li>
+        {% endfor %}
+      </ul>
+    </article>
+
+    <article class="panel">
+      <div class="panel-header">
+        <h2>Hallazgos clasificados</h2>
+      </div>
+      <h3>Sugerencias</h3>
+      <ul class="service-detail-list">
+        {% for item in analysis_payload.get("suggestions", []) %}
+          <li>
+            <strong>{{ item.text }}</strong>
+            <span>Frecuencia: {{ item.frequency_hint }}</span>
+          </li>
+        {% else %}
+          <li><span>Sin sugerencias detectadas.</span></li>
+        {% endfor %}
+      </ul>
+      <h3>Quejas</h3>
+      <ul class="service-detail-list">
+        {% for item in analysis_payload.get("complaints", []) %}
+          <li>
+            <strong>{{ item.text }}</strong>
+            <span>Frecuencia: {{ item.frequency_hint }}</span>
+          </li>
+        {% else %}
+          <li><span>Sin quejas detectadas.</span></li>
+        {% endfor %}
+      </ul>
+      <h3>Comentarios negativos</h3>
+      <ul class="service-detail-list">
+        {% for item in analysis_payload.get("negative_comments", []) %}
+          <li>
+            <strong>{{ item.text }}</strong>
+            <span>Frecuencia: {{ item.frequency_hint }}</span>
+          </li>
+        {% else %}
+          <li><span>Sin comentarios negativos detectados.</span></li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+
+  <section class="grid lower-grid">
+    <article class="panel">
+      <div class="panel-header">
+        <h2>Texto extraído</h2>
+      </div>
+      <pre class="detail-pre">{{ record.extracted_text or "Sin texto extraído." }}</pre>
+    </article>
+
+    <article class="panel">
+      <div class="panel-header">
+        <h2>JSON estructurado</h2>
+      </div>
+      <pre class="detail-pre">{{ record.ai_response_json or "Sin JSON disponible." }}</pre>
+    </article>
+  </section>
+{% endblock %}

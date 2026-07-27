@@ -1,0 +1,2 @@
+import {NextResponse} from "next/server";import {currentUser} from "@/lib/auth";import {run,audit} from "@/lib/db";
+export async function PATCH(){const user=await currentUser();if(!user)return NextResponse.json({error:"No autorizado."},{status:401});const result=await run("UPDATE notifications SET read_at=CURRENT_TIMESTAMP WHERE user_id=? AND read_at IS NULL",user.id);await audit({userId:user.id,action:"NOTIFICATIONS_READ",entityType:"notification",after:{count:result.rowCount}});return NextResponse.json({ok:true,count:result.rowCount})}

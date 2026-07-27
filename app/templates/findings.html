@@ -1,0 +1,52 @@
+{% extends "portal_base.html" %}
+{% block portal_content %}
+  <section class="page-grid findings-grid">
+    <article class="module-card">
+      <div class="module-header">
+        <div>
+          <p class="eyebrow">Sugerencias</p>
+          <h2>Más frecuentes</h2>
+        </div>
+      </div>
+      <ul class="topic-list">
+        {% for item in payload.suggestions_by_department %}
+          <li><strong>{{ item.department }}</strong><span>{{ item.topic }}</span><em>{{ item.count }}</em></li>
+        {% else %}
+          <li class="empty">Aún no hay sugerencias clasificadas.</li>
+        {% endfor %}
+      </ul>
+    </article>
+
+    <article class="module-card">
+      <div class="module-header">
+        <div>
+          <p class="eyebrow">Quejas</p>
+          <h2>Más frecuentes</h2>
+        </div>
+      </div>
+      <ul class="topic-list">
+        {% for item in payload.complaints_by_department %}
+          <li><strong>{{ item.department }}</strong><span>{{ item.topic }}</span><em>{{ item.count }}</em></li>
+        {% else %}
+          <li class="empty">Aún no hay quejas clasificadas.</li>
+        {% endfor %}
+      </ul>
+    </article>
+
+    <article class="module-card">
+      <div class="module-header">
+        <div>
+          <p class="eyebrow">Inconformidades</p>
+          <h2>Comentarios negativos</h2>
+        </div>
+      </div>
+      <ul class="topic-list">
+        {% for item in payload.negative_comments_by_department %}
+          <li><strong>{{ item.department }}</strong><span>{{ item.topic }}</span><em>{{ item.count }}</em></li>
+        {% else %}
+          <li class="empty">Aún no hay comentarios negativos clasificados.</li>
+        {% endfor %}
+      </ul>
+    </article>
+  </section>
+{% endblock %}

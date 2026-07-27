@@ -1,0 +1,90 @@
+{% extends "portal_base.html" %}
+{% block portal_content %}
+  <section class="page-grid overview-grid">
+    <article class="module-card accent-panel">
+      <div class="module-header">
+        <div>
+          <p class="eyebrow">Estado del sistema</p>
+          <h2>Radar operativo</h2>
+        </div>
+        <span class="module-chip">Tiempo real</span>
+      </div>
+      <div class="metric-cloud">
+        <div class="metric-orb">
+          <span>Documentos</span>
+          <strong>{{ payload.summary.total }}</strong>
+        </div>
+        <div class="metric-orb">
+          <span>Procesados</span>
+          <strong>{{ payload.summary.completed }}</strong>
+        </div>
+        <div class="metric-orb">
+          <span>Pendientes</span>
+          <strong>{{ payload.summary.processing }}</strong>
+        </div>
+      </div>
+      <div class="quality-list">
+        {% for level, count in payload.quality_levels.items() %}
+          <div class="quality-item">
+            <span>{{ level|capitalize }}</span>
+            <div class="meter"><i style="width: {{ (count / (payload.summary.completed or 1) * 100)|round(0) }}%"></i></div>
+            <strong>{{ count }}</strong>
+          </div>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="module-card insights-panel">
+      <div class="module-header">
+        <div>
+          <p class="eyebrow">Lectura rápida</p>
+          <h2>Señales principales</h2>
+        </div>
+      </div>
+      <div class="signal-list">
+        <div class="signal-item">
+          <span>Sugerencias clasificadas</span>
+          <strong>{{ payload.summary.suggestions }}</strong>
+        </div>
+        <div class="signal-item">
+          <span>Quejas clasificadas</span>
+          <strong>{{ payload.summary.complaints }}</strong>
+        </div>
+        <div class="signal-item">
+          <span>Inconformidades</span>
+          <strong>{{ payload.summary.negative_comments }}</strong>
+        </div>
+      </div>
+      <div class="mini-grid">
+        {% for row in payload.department_overview[:4] %}
+          <article class="mini-card">
+            <span>{{ row.department }}</span>
+            <strong>{{ row.total }}</strong>
+            <small>{{ row.complaints }} quejas</small>
+          </article>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+
+  <section class="page-grid">
+    <article class="module-card">
+      <div class="module-header">
+        <div>
+          <p class="eyebrow">Servicios</p>
+          <h2>Rendimiento más visible</h2>
+        </div>
+        <a href="/analytics">Ver analítica completa</a>
+      </div>
+      <div class="service-ribbon">
+        {% for service in payload.service_summary[:8] %}
+          <div class="service-pill-card">
+            <span>{{ service.service_name }}</span>
+            <strong>{{ service.dominant_level }}</strong>
+            <small>{{ service.avg_score if service.avg_score is not none else "Sin dato" }}</small>
+          </div>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+{% endblock %}
