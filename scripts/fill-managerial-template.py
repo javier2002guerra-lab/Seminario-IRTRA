@@ -67,29 +67,19 @@ def clear_historical_data(workbook):
             for column in (1,2,4,5):
                 sheet.cell(row,column).value=None
 
-def save_with_native_excel(template, workbook, output):
+def save_with_native_excel(template, workbook, output, original_values):
     """Use openpyxl only to calculate changed cells, then write them with Excel.
     This preserves the original XLSM package, including macros, charts and
     conditional-format extensions that openpyxl cannot round-trip.
     """
-    draft=Path(output).with_suffix(".draft.xlsm")
-    workbook.save(draft)
-    original=load_workbook(template,keep_vba=True,data_only=False,read_only=True)
-    generated=load_workbook(draft,keep_vba=True,data_only=False,read_only=True)
+    current_values={(sheet.title,cell.row,cell.column):cell.value for sheet in workbook.worksheets for row in sheet.iter_rows() for cell in row if cell.value is not None}
     changes=[]
-    for sheet in generated.sheetnames:
-        source=original[sheet]; target=generated[sheet]
-        max_row=max(source.max_row,target.max_row); max_col=max(source.max_column,target.max_column)
-        for row in range(1,max_row+1):
-            for col in range(1,max_col+1):
-                before=source.cell(row,col).value; after=target.cell(row,col).value
-                if before != after: changes.append((sheet,row,col,after))
-    original.close(); generated.close()
+    for key in original_values.keys() | current_values.keys():
+        before=original_values.get(key); after=current_values.get(key)
+        if before != after: changes.append((*key,after))
     if sys.platform != "win32":
         patch_xlsm(template,output,changes)
-        draft.unlink(missing_ok=True)
         return
-    draft.unlink(missing_ok=True)
     shutil.copy2(template,output)
     try:
         import win32com.client
@@ -153,6 +143,7 @@ def patch_xlsm(template,output,changes):
 def main(template,data_path,output):
     rows=json.loads(Path(data_path).read_text(encoding="utf-8-sig"))
     wb=load_workbook(template,keep_vba=True,data_only=False)
+    original_values={(sheet.title,cell.row,cell.column):cell.value for sheet in wb.worksheets for row in sheet.iter_rows() for cell in row if cell.value is not None}
     clear_historical_data(wb)
     monthly=defaultdict(lambda:{"affiliate":Counter(),"reason":Counter(),"recommend":Counter(),"resolved":Counter(),"collab":Counter(),"attendant":Counter(),"category":Counter(),"services":defaultdict(Counter),"dept_s":Counter(),"dept_q":Counter()})
     suggestions=Counter(); complaints=Counter(); venue_services=defaultdict(lambda:defaultdict(lambda:defaultdict(Counter))); venue_negative=defaultdict(Counter)
@@ -217,6 +208,6 @@ def main(template,data_path,output):
             for values in venue_services[m][venue].values():allq.update(values)
             setv(ws,f"C{r}",allq["excelente"]+allq["bueno"]);setv(ws,f"D{r}",allq["regular"]);setv(ws,f"E{r}",allq["malo"])
     wb.calculation.fullCalcOnLoad=True; wb.calculation.forceFullCalc=True; wb.calculation.calcMode="auto"
-    save_with_native_excel(template,wb,output)
+    save_with_native_excel(template,wb,output,original_values)
 
 if __name__=="__main__": main(sys.argv[1],sys.argv[2],sys.argv[3])
