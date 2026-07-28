@@ -14,6 +14,20 @@ export default {
   poweredByHeader: false,
   images: { unoptimized: true },
   turbopack: { root: process.cwd() },
-  experimental: { serverActions: { bodySizeLimit: '55mb' } },
+  outputFileTracingIncludes: {
+    "/api/export": [
+      "./scripts/fill-managerial-template.py",
+      "./data/excel_templates/INFORME GERENCIAL ENCUESTAS.xlsm",
+      "./.python-packages/**/*",
+    ],
+    "/api/reports/export": [
+      "./scripts/export-statistical-report.py",
+      "./.python-packages/**/*",
+    ],
+  },
+  experimental: {
+    cpus: 1,
+    serverActions: { bodySizeLimit: '55mb' },
+  },
   async headers() { return [{ source: '/(.*)', headers: securityHeaders }]; },
 };

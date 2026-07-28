@@ -14,7 +14,9 @@ export async function GET(req, { params }) {
   if (r.stored_name.startsWith("PURGED-")) return NextResponse.json({ error: "El original fue eliminado por la política de retención." }, { status: 410 });
   const safe = path.basename(r.stored_name);
   const storedFile = await get("SELECT content FROM survey_files WHERE survey_id=?", r.id);
-  const diskPath = path.resolve(process.env.UPLOAD_DIR || "private_uploads", safe);
+  const diskPath = process.env.NODE_ENV === "production"
+    ? path.join("/tmp/irtra-uploads", safe)
+    : path.join(process.cwd(), "private_uploads", safe);
   const file = storedFile?.content || (fs.existsSync(diskPath) ? fs.readFileSync(diskPath) : null);
   if (!file)
     return NextResponse.json(

@@ -3,6 +3,7 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { currentUser, can } from "@/lib/auth";
 import { get, run, audit, transaction } from "@/lib/db";
+import { uploadDirectory } from "@/lib/files";
 
 export async function POST(req, { params }) {
   const user = await currentUser();
@@ -47,7 +48,7 @@ export async function POST(req, { params }) {
     await run("DELETE FROM surveys WHERE id=?", survey.id);
   });
   const safe = path.basename(survey.stored_name);
-  const file = path.resolve(process.env.UPLOAD_DIR || "private_uploads", safe);
+  const file = path.join(uploadDirectory(), safe);
   if (!survey.stored_name.startsWith("PURGED-") && fs.existsSync(file)) fs.unlinkSync(file);
   return NextResponse.json({ ok: true, deleted: true });
 }

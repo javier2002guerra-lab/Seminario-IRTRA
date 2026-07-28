@@ -36,27 +36,25 @@ export async function GET(req) {
       areas: row.areas ? row.areas.split("|") : [], ratings: bySurvey.get(String(row.id)) || [],
     };
   });
-  const root = process.cwd();
-  const template = path.join(root,"data","excel_templates","INFORME GERENCIAL ENCUESTAS.xlsm");
-  if (!fs.existsSync(template)) return NextResponse.json({error:"No se encontró la plantilla gerencial XLSM."},{status:500});
+  const template = path.join(/*turbopackIgnore: true*/ process.cwd(),"data","excel_templates","INFORME GERENCIAL ENCUESTAS.xlsm");
+  if (!fs.existsSync(/*turbopackIgnore: true*/ template)) return NextResponse.json({error:"No se encontró la plantilla gerencial XLSM."},{status:500});
   const token = crypto.randomUUID(), input = path.join(os.tmpdir(),`irtra-${token}.json`), output = path.join(os.tmpdir(),`irtra-${token}.xlsm`);
   try {
     fs.writeFileSync(input,JSON.stringify(payload),{encoding:"utf8",mode:0o600});
     const python = process.env.PYTHON_COMMAND || (process.platform === "win32" ? "python" : "python3");
-    const pythonPackages = path.join(root, ".python-packages");
+    const pythonPackages = path.join(/*turbopackIgnore: true*/ process.cwd(), ".python-packages");
     const pythonPath = [pythonPackages, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter);
-    const result = spawnSync(python,[path.join(root,"scripts","fill-managerial-template.py"),template,input,output],{
-      cwd:root,
+    const result = spawnSync(python,[path.join(/*turbopackIgnore: true*/ process.cwd(),"scripts","fill-managerial-template.py"),template,input,output],{
       encoding:"utf8",
       timeout:120000,
       windowsHide:true,
       env:{...process.env,PYTHONPATH:pythonPath},
     });
-    if (result.status !== 0 || !fs.existsSync(output)) {
+    if (result.status !== 0 || !fs.existsSync(/*turbopackIgnore: true*/ output)) {
       console.error("Error al generar XLSM:",String(result.stderr || result.stdout).slice(0,2000));
       return NextResponse.json({error:"No fue posible llenar la plantilla gerencial. Verifique Python y openpyxl."},{status:500});
     }
-    const file = fs.readFileSync(output);
+    const file = fs.readFileSync(/*turbopackIgnore: true*/ output);
     await audit({userId:user.id,action:"REPORT_EXPORT",entityType:"report",ip:clientIp(req),after:{records:payload.length,format:"xlsm",template:path.basename(template),from:range.from,to:range.to}});
     return new NextResponse(file,{headers:{"content-type":"application/vnd.ms-excel.sheet.macroEnabled.12","content-disposition":`attachment; filename="INFORME GERENCIAL ${range.from} a ${range.to}.xlsm"`,"cache-control":"no-store, no-cache, must-revalidate","pragma":"no-cache","expires":"0"}});
   } finally {

@@ -19,7 +19,6 @@ export async function GET(req) {
   const token = crypto.randomUUID();
   const input = path.join(os.tmpdir(), `irtra-report-${token}.json`);
   const output = path.join(os.tmpdir(), `irtra-report-${token}.xlsx`);
-  const root = process.cwd();
   try {
     fs.writeFileSync(input, JSON.stringify(data), { encoding: "utf8", mode: 0o600 });
     const python =
@@ -27,16 +26,15 @@ export async function GET(req) {
       (process.platform === "win32" ? "python" : "python3");
     const result = spawnSync(
       python,
-      [path.join(root, "scripts", "export-statistical-report.py"), input, output],
+      [path.join(/*turbopackIgnore: true*/ process.cwd(), "scripts", "export-statistical-report.py"), input, output],
       {
-        cwd: root,
         encoding: "utf8",
         timeout: 120000,
         windowsHide: true,
         env: {
           ...process.env,
           PYTHONPATH: [
-            path.join(root, ".python-packages"),
+            path.join(/*turbopackIgnore: true*/ process.cwd(), ".python-packages"),
             process.env.PYTHONPATH || "",
           ]
             .filter(Boolean)
@@ -44,9 +42,9 @@ export async function GET(req) {
         },
       },
     );
-    if (result.status !== 0 || !fs.existsSync(output))
+    if (result.status !== 0 || !fs.existsSync(/*turbopackIgnore: true*/ output))
       throw new Error("No se pudo generar el reporte estadístico.");
-    const file = fs.readFileSync(output);
+    const file = fs.readFileSync(/*turbopackIgnore: true*/ output);
     return new NextResponse(file, {
       headers: {
         "content-type":
