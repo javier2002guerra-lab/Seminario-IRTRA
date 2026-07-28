@@ -108,6 +108,7 @@ const fieldLabels = {
   "general_data.phone": "Teléfono",
   "general_data.room_number": "Habitación",
   "general_data.visit_reason": "Razón de la visita",
+  "general_data.origin_place": "Lugar de origen",
   "general_data.restaurant": "Restaurante",
   "general_data.hotel": "Hotel",
   category: "Categoría",

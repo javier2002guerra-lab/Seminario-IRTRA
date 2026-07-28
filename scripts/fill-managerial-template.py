@@ -245,7 +245,7 @@ def main(template,data_path,output):
         departments=row.get("areas") or ["Sin especificar"]; dept=DEPARTMENTS.get(norm(departments[0]),"Administracion")
         if category in ("Sugerencia","Mixta"): d["category"]["sugerencia"]+=1; d["dept_s"][dept]+=1; suggestions[topic]+=1
         if category in ("Queja","Mixta"): d["category"]["queja"]+=1; d["dept_q"][dept]+=1; complaints[topic]+=1
-        venue=row.get("restaurant") or row.get("hotel") or "Sin especificar"
+        venue=row.get("origin_place") or row.get("restaurant") or row.get("hotel") or "Sin especificar"
         for rating in row.get("ratings",[]):
             service=norm(rating.get("service_name")); quality=norm(rating.get("rating"));
             if quality in ("excelente","bueno","regular","malo"):

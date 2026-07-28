@@ -30,7 +30,7 @@ export async function GET(req) {
     return {
       id: row.id, created_at: row.created_at, category: row.category,
       priority: row.priority, primary_topic: row.primary_topic, summary: row.summary,
-      restaurant: row.restaurant, hotel: row.hotel,
+      origin_place: row.origin_place, restaurant: row.restaurant, hotel: row.hotel,
       general: extracted.general_data || {}, numbered: extracted.numbered_answers || {},
       areas: row.areas ? row.areas.split("|") : [], ratings: bySurvey.get(String(row.id)) || [],
     };
