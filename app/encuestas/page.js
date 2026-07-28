@@ -114,7 +114,7 @@ export default async function Page({ searchParams }) {
         <b>Exportar datos actuales</b>
         <label>Desde <input className="input" type="date" name="from" defaultValue={p.from || monthAgo} required /></label>
         <label>Hasta <input className="input" type="date" name="to" defaultValue={p.to || today} required /></label>
-        <span className="muted">Rango permitido: de 1 día hasta 1 mes (31 días).</span>
+        <span className="muted">Puedes exportar cualquier intervalo de fechas.</span>
         <button className="btn secondary" type="submit">Exportar XLSM</button>
       </form>
       <div className="card">

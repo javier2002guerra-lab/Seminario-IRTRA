@@ -2,12 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { parseExportRange, parseMonth, previousMonth } from "../lib/report-range.js";
 
-test("acepta exportaciones de uno a 31 días", () => {
+test("acepta exportaciones de cualquier intervalo de fechas", () => {
   assert.equal(parseExportRange(new URLSearchParams("from=2026-07-01&to=2026-07-31")).days, 31);
   assert.equal(parseExportRange(new URLSearchParams("from=2026-07-16&to=2026-07-16")).days, 1);
+  assert.equal(parseExportRange(new URLSearchParams("from=2020-01-01&to=2026-07-28")).days, 2401);
+  assert.equal(parseExportRange(new URLSearchParams("from=2026-07-27&to=2026-07-28")).days, 2);
 });
-test("rechaza rangos mayores a un mes e invertidos", () => {
-  assert.throws(() => parseExportRange(new URLSearchParams("from=2026-06-01&to=2026-07-16")), /31 días/);
+test("rechaza únicamente rangos invertidos", () => {
   assert.throws(() => parseExportRange(new URLSearchParams("from=2026-07-16&to=2026-07-01")), /anterior/);
 });
 test("calcula meses completos y el mes anterior", () => {
