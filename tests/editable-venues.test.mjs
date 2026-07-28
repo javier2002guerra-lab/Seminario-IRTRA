@@ -11,16 +11,20 @@ const route = fs.readFileSync(
   "utf8",
 );
 
-test("el formato editable muestra Restaurante, Hotel y Lugar de origen en la misma fila", () => {
+test("el formato editable muestra Lugar de origen, Hotel y Restaurante en la misma fila", () => {
   const venues = editor.match(
     /<div className="editor-venues">([\s\S]*?)<\/div>/,
   )?.[1] || "";
-  assert.match(venues, /label="Restaurante"/);
-  assert.match(venues, /label="Hotel"/);
-  assert.match(venues, /label="Lugar de origen"/);
+  assert.match(venues, /label="Lugar de origen"[\s\S]*label="Hotel"[\s\S]*label="Restaurante"/);
+  assert.match(venues, /name="hotelId"/);
+  assert.match(venues, /Seleccione un hotel/);
+  assert.match(venues, /name="restauranteId"/);
+  assert.match(venues, /Seleccione un restaurante/);
 });
 
 test("el guardado conserva Restaurante, Hotel y Lugar de origen", () => {
   assert.match(route, /restaurant=\?,hotel=\?,origin_place=\?/);
+  assert.match(route, /b\.hotelId/);
+  assert.match(route, /b\.restauranteId/);
   assert.doesNotMatch(route, /restaurant=NULL|hotel=NULL/);
 });

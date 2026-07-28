@@ -1,5 +1,10 @@
 "use client";
 import { useState } from "react";
+import {
+  HOTEL_OPTIONS,
+  RESTAURANT_OPTIONS,
+  optionId,
+} from "@/lib/venue-catalog";
 
 const services = [
   "Cortesía del personal", "Prontitud en chequeo de ingreso y salida",
@@ -27,6 +32,12 @@ export default function DataEditor({ record, ratings = [] }) {
   const g = extracted.general_data || {}, n = extracted.numbered_answers || {};
   const ratingMap = new Map(ratings.map(x => [x.service_name, x.rating]));
   const [msg, setMsg] = useState(""), [saving, setSaving] = useState(false);
+  const [hotelId, setHotelId] = useState(
+    optionId(HOTEL_OPTIONS, record.hotel || g.hotel),
+  );
+  const [restauranteId, setRestauranteId] = useState(
+    optionId(RESTAURANT_OPTIONS, record.restaurant || g.restaurant),
+  );
 
   async function save(event) {
     event.preventDefault(); setSaving(true); setMsg("");
@@ -37,7 +48,7 @@ export default function DataEditor({ record, ratings = [] }) {
     const body = {
       general, numbered,
       ratings: services.map(service => ({service, rating: fd.get(`service:${service}`) || "Sin dato"})),
-      restaurant: fd.get("restaurant"), hotel: fd.get("hotel"),
+      hotelId, restauranteId,
       origin_place: fd.get("origin_place"), reason: fd.get("reason"),
     };
     const response = await fetch(`/api/surveys/${record.id}/data`, {method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
@@ -64,9 +75,9 @@ export default function DataEditor({ record, ratings = [] }) {
       <EditorLine no="4" label="Correo electrónico"><input type="email" name="email" defaultValue={g.email || ""}/></EditorLine>
       <EditorLine no="5" label="Razón de su visita"><input name="visit_reason" defaultValue={g.visit_reason || ""}/></EditorLine>
       <div className="editor-venues">
-        <EditorLine label="Restaurante"><select name="restaurant" defaultValue={record.restaurant || g.restaurant || ""}><option value="">Sin especificar</option>{["La Hacienda","Arekas","Corozos","Kapahapa"].map(x=><option key={x}>{x}</option>)}</select></EditorLine>
-        <EditorLine label="Hotel"><select name="hotel" defaultValue={record.hotel || g.hotel || ""}><option value="">Sin especificar</option>{["San Martín","Santa Cruz","Ranchería","Palajunoj"].map(x=><option key={x}>{x}</option>)}</select></EditorLine>
         <EditorLine label="Lugar de origen"><select name="origin_place" defaultValue={record.origin_place || g.origin_place || ""}><option value="">Sin especificar</option>{["Golfito","Gimnasio","Spa","Boliche"].map(x=><option key={x}>{x}</option>)}</select></EditorLine>
+        <EditorLine label="Hotel"><select name="hotelId" value={hotelId} onChange={event => setHotelId(event.target.value)}><option value="">Seleccione un hotel</option>{HOTEL_OPTIONS.map(option=><option key={option.id} value={option.id}>{option.name}</option>)}</select></EditorLine>
+        <EditorLine label="Restaurante"><select name="restauranteId" value={restauranteId} onChange={event => setRestauranteId(event.target.value)}><option value="">Seleccione un restaurante</option>{RESTAURANT_OPTIONS.map(option=><option key={option.id} value={option.id}>{option.name}</option>)}</select></EditorLine>
       </div>
       <EditorLine label="Habitación"><input name="room_number" defaultValue={g.room_number || ""}/></EditorLine>
     </section>
