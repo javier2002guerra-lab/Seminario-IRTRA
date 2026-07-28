@@ -42,7 +42,7 @@ export default function ReviewWorkspace({ record, ratings, canEdit }) {
       <div className="original-viewer">
       {preview.state === "loading" && <div className="viewer-message">Cargando documento original…</div>}
       {preview.state === "error" && <div className="viewer-message viewer-error"><b>No se pudo mostrar el documento.</b><span>{preview.message}</span></div>}
-      {preview.state === "ready" && (record.mime_type === "application/pdf" ? <iframe src={preview.url} title="Boleta original" sandbox=""/> : <img src={preview.url} alt="Boleta original"/>)}
+      {preview.state === "ready" && (record.mime_type === "application/pdf" ? <iframe src={preview.url} title="Boleta original" referrerPolicy="no-referrer"/> : <img src={preview.url} alt="Boleta original"/>)}
       </div>
     </div>
     <div hidden={view !== "fields"}>
