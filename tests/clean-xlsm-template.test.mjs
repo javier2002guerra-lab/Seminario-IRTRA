@@ -28,6 +28,20 @@ test("la descarga usa la plantilla limpia aprobada", () => {
   });
 });
 
+test("la plantilla conserva las cuatro acciones de botones reparadas", () => {
+  const python = process.env.PYTHON_COMMAND || (process.platform === "win32" ? "python" : "python3");
+  const result = spawnSync(python, [path.join(root, "scripts", "verify-xlsm-buttons.py"), template], {
+    encoding: "utf8",
+    timeout: 30000,
+    windowsHide: true,
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.deepEqual(JSON.parse(result.stdout), {
+    expected_actions: 4,
+    missing_actions: [],
+  });
+});
+
 test("el endpoint y el generador manual exportan solo encuestas confirmadas", () => {
   for (const file of [
     path.join(root, "app", "api", "export", "route.js"),
