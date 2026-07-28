@@ -37,6 +37,7 @@ export default function DataEditor({ record, ratings = [] }) {
     const body = {
       general, numbered,
       ratings: services.map(service => ({service, rating: fd.get(`service:${service}`) || "Sin dato"})),
+      restaurant: fd.get("restaurant"), hotel: fd.get("hotel"),
       origin_place: fd.get("origin_place"), reason: fd.get("reason"),
     };
     const response = await fetch(`/api/surveys/${record.id}/data`, {method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
@@ -62,6 +63,10 @@ export default function DataEditor({ record, ratings = [] }) {
       </div>
       <EditorLine no="4" label="Correo electrónico"><input type="email" name="email" defaultValue={g.email || ""}/></EditorLine>
       <EditorLine no="5" label="Razón de su visita"><input name="visit_reason" defaultValue={g.visit_reason || ""}/></EditorLine>
+      <div className="editor-split">
+        <EditorLine label="Restaurante"><select name="restaurant" defaultValue={record.restaurant || g.restaurant || ""}><option value="">Sin especificar</option>{["La Hacienda","Arekas","Corozos","Kapahapa"].map(x=><option key={x}>{x}</option>)}</select></EditorLine>
+        <EditorLine label="Hotel"><select name="hotel" defaultValue={record.hotel || g.hotel || ""}><option value="">Sin especificar</option>{["San Martín","Santa Cruz","Ranchería","Palajunoj"].map(x=><option key={x}>{x}</option>)}</select></EditorLine>
+      </div>
       <EditorLine label="Lugar de origen"><select name="origin_place" defaultValue={record.origin_place || g.origin_place || ""}><option value="">Sin especificar</option>{["Golfito","Gimnasio","Spa","Boliche"].map(x=><option key={x}>{x}</option>)}</select></EditorLine>
       <EditorLine label="Habitación"><input name="room_number" defaultValue={g.room_number || ""}/></EditorLine>
     </section>
