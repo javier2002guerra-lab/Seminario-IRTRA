@@ -75,9 +75,10 @@ export default function DataEditor({ record, ratings = [] }) {
       <EditorLine no="4" label="Correo electrónico"><input type="email" name="email" defaultValue={g.email || ""}/></EditorLine>
       <EditorLine no="5" label="Razón de su visita"><input name="visit_reason" defaultValue={g.visit_reason || ""}/></EditorLine>
       <div className="editor-venues">
-        <EditorLine label="Lugar de origen"><select name="origin_place" defaultValue={record.origin_place || g.origin_place || ""}><option value="">Sin especificar</option>{["Golfito","Gimnasio","Spa","Boliche"].map(x=><option key={x}>{x}</option>)}</select></EditorLine>
-        <EditorLine label="Hotel"><select name="hotelId" value={hotelId} onChange={event => setHotelId(event.target.value)}><option value="">Seleccione un hotel</option>{HOTEL_OPTIONS.map(option=><option key={option.id} value={option.id}>{option.name}</option>)}</select></EditorLine>
-        <EditorLine label="Restaurante"><select name="restauranteId" value={restauranteId} onChange={event => setRestauranteId(event.target.value)}><option value="">Seleccione un restaurante</option>{RESTAURANT_OPTIONS.map(option=><option key={option.id} value={option.id}>{option.name}</option>)}</select></EditorLine>
+        <strong>Lugar de origen</strong>
+        <select aria-label="Lugar de origen" name="origin_place" defaultValue={record.origin_place || g.origin_place || ""}><option value="">Sin especificar</option>{["Golfito","Gimnasio","Spa","Boliche"].map(x=><option key={x}>{x}</option>)}</select>
+        <select aria-label="Hotel" name="hotelId" value={hotelId} onChange={event => setHotelId(event.target.value)}><option value="">Seleccione un hotel</option>{HOTEL_OPTIONS.map(option=><option key={option.id} value={option.id}>{option.name}</option>)}</select>
+        <select aria-label="Restaurante" name="restauranteId" value={restauranteId} onChange={event => setRestauranteId(event.target.value)}><option value="">Seleccione un restaurante</option>{RESTAURANT_OPTIONS.map(option=><option key={option.id} value={option.id}>{option.name}</option>)}</select>
       </div>
       <EditorLine label="Habitación"><input name="room_number" defaultValue={g.room_number || ""}/></EditorLine>
     </section>

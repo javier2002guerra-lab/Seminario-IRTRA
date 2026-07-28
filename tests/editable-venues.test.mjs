@@ -15,7 +15,8 @@ test("el formato editable muestra Lugar de origen, Hotel y Restaurante en la mis
   const venues = editor.match(
     /<div className="editor-venues">([\s\S]*?)<\/div>/,
   )?.[1] || "";
-  assert.match(venues, /label="Lugar de origen"[\s\S]*label="Hotel"[\s\S]*label="Restaurante"/);
+  assert.match(venues, /<strong>Lugar de origen<\/strong>/);
+  assert.match(venues, /name="origin_place"[\s\S]*name="hotelId"[\s\S]*name="restauranteId"/);
   assert.match(venues, /name="hotelId"/);
   assert.match(venues, /Seleccione un hotel/);
   assert.match(venues, /name="restauranteId"/);
