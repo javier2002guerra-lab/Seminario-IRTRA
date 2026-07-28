@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { get, run, audit, transaction } from "@/lib/db";
 import { currentUser, can } from "@/lib/auth";
-import { validateFile, saveOriginal } from "@/lib/files";
-import { analyzeSurvey, PROMPT_VERSION } from "@/lib/analyzer";
+import { validateFile, saveOriginal, removeOriginal } from "@/lib/files";
+import { analyzeSurvey, INVALID_SURVEY_MESSAGE, InvalidSurveyError, PROMPT_VERSION } from "@/lib/analyzer";
 import { assignSla } from "@/lib/sla";
 export const runtime = "nodejs";
 
@@ -35,6 +35,7 @@ export async function POST(req) {
       { status: 400 },
     );
   let created = 0;
+  let invalidRejected = false;
   const errors = [];
   for (const file of files) {
     try {
@@ -129,6 +130,17 @@ export async function POST(req) {
         });
         await assignSla(id);
       } catch (err) {
+        if (err instanceof InvalidSurveyError) {
+          await run("DELETE FROM surveys WHERE id=?", id);
+          removeOriginal(stored);
+          await audit({
+            userId: user.id,
+            action: "INVALID_DOCUMENT_REJECTED",
+            ip: req.headers.get("x-forwarded-for"),
+            after: { name: file.name, reason: err.reason },
+          });
+          throw err;
+        }
         await run(
           "UPDATE surveys SET status=?,needs_review=1,summary=? WHERE id=?",
           "Error",
@@ -145,11 +157,18 @@ export async function POST(req) {
       }
       created++;
     } catch (e) {
+      if (e instanceof InvalidSurveyError) invalidRejected = true;
       errors.push(`${file.name}: ${e.message}`);
     }
   }
   return NextResponse.json(
-    { created, errors },
+    {
+      created,
+      errors,
+      ...(created === 0
+        ? { error: invalidRejected ? INVALID_SURVEY_MESSAGE : errors[0] || "No se pudo procesar el documento." }
+        : {}),
+    },
     { status: created ? 201 : 400 },
   );
 }
