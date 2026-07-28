@@ -120,6 +120,25 @@ def save_with_native_excel(template, workbook, output, original_values):
     This preserves the original XLSM package, including macros, charts and
     conditional-format extensions that openpyxl cannot round-trip.
     """
+    # Some clean templates store their input placeholders as formulas and list
+    # them in calcChain.xml. Keep those cells as formulas when replacing their
+    # values; removing the formula would leave a dangling calc-chain entry and
+    # Excel would report the exported XLSM as damaged.
+    for (sheet_name,row,column),before in original_values.items():
+        if not (isinstance(before,str) and before.startswith("=")):
+            continue
+        cell=workbook[sheet_name].cell(row,column)
+        value=cell.value
+        if isinstance(value,str) and value.startswith("="):
+            continue
+        if value is None:
+            cell.value="=0"
+        elif isinstance(value,bool):
+            cell.value="=TRUE()" if value else "=FALSE()"
+        elif isinstance(value,(int,float)):
+            cell.value=f"={value}"
+        else:
+            cell.value=f'="{str(value).replace(chr(34), chr(34)*2)}"'
     current_values={(sheet.title,cell.row,cell.column):cell.value for sheet in workbook.worksheets for row in sheet.iter_rows() for cell in row if cell.value is not None}
     changes=[]
     for key in original_values.keys() | current_values.keys():
