@@ -5,7 +5,21 @@ import LogoutButton from "./LogoutButton";
 
 export default function AppChrome({children,nav,active,unread,user}){
   const [collapsed,setCollapsed]=useState(false);
-  useEffect(()=>setCollapsed(localStorage.getItem("irtra-menu-collapsed")==="true"),[]);
+  useEffect(()=>{
+    setCollapsed(localStorage.getItem("irtra-menu-collapsed")==="true");
+    let active=true;
+    const verify=async()=>{
+      try{
+        const response=await fetch("/api/auth/session",{cache:"no-store"});
+        if(active&&response.status===401) window.location.replace("/login?reason=session-replaced");
+      }catch{}
+    };
+    const timer=setInterval(verify,10000);
+    const onFocus=()=>verify();
+    window.addEventListener("focus",onFocus);
+    verify();
+    return()=>{active=false;clearInterval(timer);window.removeEventListener("focus",onFocus)};
+  },[]);
   function toggle(){
     setCollapsed(value=>{const next=!value;localStorage.setItem("irtra-menu-collapsed",String(next));return next});
   }

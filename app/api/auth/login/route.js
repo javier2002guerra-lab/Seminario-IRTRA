@@ -34,7 +34,11 @@ export async function POST(req) {
     );
   }
   await run("DELETE FROM login_attempts WHERE key=?", key);
-  await setSession(await createSession(user));
-  await audit({ userId: user.id, action: "LOGIN_SUCCESS", ip });
+  const sessionUser = await get(
+    "UPDATE users SET session_version=session_version+1 WHERE id=? RETURNING *",
+    user.id,
+  );
+  await setSession(await createSession(sessionUser));
+  await audit({ userId: user.id, action: "LOGIN_SUCCESS", ip, after: { previous_sessions_closed: true } });
   return NextResponse.json({ ok: true });
 }
