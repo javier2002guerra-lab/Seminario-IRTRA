@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { get, audit } from "@/lib/db";
 import { surveyScope } from "@/lib/scope";
+import { clientIp } from "@/lib/security";
 export async function GET(req, { params }) {
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -20,6 +21,6 @@ export async function GET(req, { params }) {
       { error: "El archivo original no está disponible. Vuelva a escanearlo para restaurarlo." },
       { status: 404 },
     );
-  await audit({ userId: user.id, action: "ORIGINAL_DOWNLOAD", entityType: "survey", entityId: r.id, ip: req.headers.get("x-forwarded-for") });
+  await audit({ userId: user.id, action: "ORIGINAL_DOWNLOAD", entityType: "survey", entityId: r.id, ip: clientIp(req) });
   return new NextResponse(file, { headers: { "content-type": r.mime_type, "content-disposition": `${new URL(req.url).searchParams.get("preview") === "1" ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(r.original_name)}`, "cache-control": "no-store" } });
 }

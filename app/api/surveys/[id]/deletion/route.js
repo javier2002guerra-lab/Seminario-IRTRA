@@ -41,6 +41,9 @@ export async function POST(req, { params }) {
     await run("DELETE FROM survey_areas WHERE survey_id=?", survey.id);
     await run("DELETE FROM corrections WHERE survey_id=?", survey.id);
     await run("DELETE FROM followups WHERE survey_id=?", survey.id);
+    await run("DELETE FROM notifications WHERE survey_id=?", survey.id);
+    await run("DELETE FROM survey_files WHERE survey_id=?", survey.id);
+    await run("DELETE FROM deletion_requests WHERE survey_id=?", survey.id);
     await run("DELETE FROM surveys WHERE id=?", survey.id);
   });
   const safe = path.basename(survey.stored_name);

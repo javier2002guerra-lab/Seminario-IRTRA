@@ -12,12 +12,17 @@ export async function POST(req) {
     !b.name ||
     !/^\S+@\S+\.\S+$/.test(b.email) ||
     !roles.includes(b.role) ||
-    String(b.password).length < 12
+    String(b.password).length < 14 ||
+    String(b.password).length > 128 ||
+    !/[a-z]/.test(String(b.password)) ||
+    !/[A-Z]/.test(String(b.password)) ||
+    !/\d/.test(String(b.password)) ||
+    !/[^A-Za-z0-9]/.test(String(b.password))
   )
     return NextResponse.json(
       {
         error:
-          "Datos inválidos; la contraseña debe tener al menos 12 caracteres.",
+          "Datos inválidos; la contraseña debe tener entre 14 y 128 caracteres e incluir mayúscula, minúscula, número y símbolo.",
       },
       { status: 400 },
     );

@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: irtra_calidad
       POSTGRES_USER: irtra
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-irtra_local_change}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD debe configurarse}
     ports:
       - "127.0.0.1:5434:5432"
     volumes:

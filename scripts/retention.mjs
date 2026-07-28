@@ -17,8 +17,11 @@ await transaction(async () => {
       path.basename(r.stored_name),
     );
     if (fs.existsSync(file)) fs.unlinkSync(file);
+    await run("DELETE FROM survey_files WHERE survey_id=?", r.id);
+    await run("DELETE FROM corrections WHERE survey_id=?", r.id);
+    await run("DELETE FROM followups WHERE survey_id=?", r.id);
     await run(
-      "UPDATE surveys SET stored_name='PURGED-'||id,summary='[Información anonimizada por política de retención]',extracted_data='{}',ai_original='{}',updated_at=CURRENT_TIMESTAMP WHERE id=?",
+      "UPDATE surveys SET stored_name='PURGED-'||id,original_name='Documento eliminado por retención',summary='[Información anonimizada por política de retención]',extracted_data='{}',ai_original='{}',secondary_topics='[]',restaurant=NULL,hotel=NULL,origin_place=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=?",
       r.id,
     );
     await audit({

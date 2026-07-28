@@ -4,6 +4,7 @@ import { currentUser, can } from "@/lib/auth";
 import { validateFile, saveOriginal, removeOriginal } from "@/lib/files";
 import { analyzeSurvey, INVALID_SURVEY_MESSAGE, InvalidSurveyError, PROMPT_VERSION } from "@/lib/analyzer";
 import { assignSla } from "@/lib/sla";
+import { clientIp } from "@/lib/security";
 export const runtime = "nodejs";
 
 const windows = new Map();
@@ -68,7 +69,7 @@ export async function POST(req) {
         action: "DOCUMENT_UPLOAD",
         entityType: "survey",
         entityId: id,
-        ip: req.headers.get("x-forwarded-for"),
+        ip: clientIp(req),
         after: { name: file.name, size: buffer.length, sha256: meta.sha256 },
       });
       try {
@@ -136,7 +137,7 @@ export async function POST(req) {
           await audit({
             userId: user.id,
             action: "INVALID_DOCUMENT_REJECTED",
-            ip: req.headers.get("x-forwarded-for"),
+            ip: clientIp(req),
             after: { name: file.name, reason: err.reason },
           });
           throw err;

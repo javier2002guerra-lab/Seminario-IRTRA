@@ -21,6 +21,10 @@ def norm(value):
     value=unicodedata.normalize("NFKD",str(value or "")).encode("ascii","ignore").decode().lower()
     return " ".join(re.sub(r"[^a-z0-9]+"," ",value).split())
 
+def safe_excel_text(value):
+    value=str(value or "")
+    return f"'{value}" if value.startswith(("=","+","-","@")) else value
+
 def month_of(row):
     raw=str(row.get("general",{}).get("visit_date") or row.get("created_at") or "")
     for fmt in ("%Y-%m-%d","%d/%m/%Y","%d-%m-%Y","%d %B %Y"):
@@ -102,7 +106,7 @@ def write_current_complaints(workbook,rows):
     counters=defaultdict(Counter)
     for row in rows:
         if row.get("category") not in ("Queja","Mixta"): continue
-        topic=(row.get("primary_topic") or "Sin tema especificado").strip()
+        topic=safe_excel_text((row.get("primary_topic") or "Sin tema especificado").strip())
         area=" ".join(norm(value) for value in (row.get("areas") or []))
         key=next((name for name,terms in {
             "hotel":("habitacion","hotel","cuarto"),"restaurant":("restaurante","alimento"),
@@ -241,7 +245,7 @@ def main(template,data_path,output):
         if not matched:d["reason"]["sin"]+=1
         d["recommend"][tri(n.get("item_7"))]+=1; d["resolved"][tri(n.get("item_10"))]+=1; d["collab"][tri(n.get("item_11"))]+=1
         attendant=norm(n.get("item_12")); role=next((x for x in ["maletero","eventos","cajero","recepcion","camarera","mesero","masajista"] if x in attendant),"otro"); d["attendant"][role]+=1
-        category=row.get("category",""); topic=(row.get("primary_topic") or "Sin determinar").strip()
+        category=row.get("category",""); topic=safe_excel_text((row.get("primary_topic") or "Sin determinar").strip())
         departments=row.get("areas") or ["Sin especificar"]; dept=DEPARTMENTS.get(norm(departments[0]),"Administracion")
         if category in ("Sugerencia","Mixta"): d["category"]["sugerencia"]+=1; d["dept_s"][dept]+=1; suggestions[topic]+=1
         if category in ("Queja","Mixta"): d["category"]["queja"]+=1; d["dept_q"][dept]+=1; complaints[topic]+=1

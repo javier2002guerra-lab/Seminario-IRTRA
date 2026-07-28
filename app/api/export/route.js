@@ -7,6 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { parseExportRange } from "@/lib/report-range";
+import { clientIp } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,7 +57,7 @@ export async function GET(req) {
       return NextResponse.json({error:"No fue posible llenar la plantilla gerencial. Verifique Python y openpyxl."},{status:500});
     }
     const file = fs.readFileSync(output);
-    await audit({userId:user.id,action:"REPORT_EXPORT",entityType:"report",ip:req.headers.get("x-forwarded-for"),after:{records:payload.length,format:"xlsm",template:path.basename(template),from:range.from,to:range.to}});
+    await audit({userId:user.id,action:"REPORT_EXPORT",entityType:"report",ip:clientIp(req),after:{records:payload.length,format:"xlsm",template:path.basename(template),from:range.from,to:range.to}});
     return new NextResponse(file,{headers:{"content-type":"application/vnd.ms-excel.sheet.macroEnabled.12","content-disposition":`attachment; filename="INFORME GERENCIAL ${range.from} a ${range.to}.xlsm"`,"cache-control":"no-store, no-cache, must-revalidate","pragma":"no-cache","expires":"0"}});
   } finally {
     for (const file of [input,output]) try { fs.unlinkSync(file); } catch {}

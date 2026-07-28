@@ -1,5 +1,4 @@
 import { spawnSync } from "node:child_process";
-import fs from "node:fs";
 import path from "node:path";
 
 const python = process.platform === "win32" ? "python" : "python3";
@@ -12,5 +11,3 @@ const result = spawnSync(
 
 if (result.status !== 0)
   throw new Error("No fue posible instalar las dependencias necesarias para exportar Excel.");
-if (process.platform !== "win32")
-  fs.rmSync(path.resolve(".venv"), { recursive: true, force: true });

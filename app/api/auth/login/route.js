@@ -7,6 +7,8 @@ const DUMMY_PASSWORD_HASH = "$2b$12$cCTzNkMCOWqYKoTBMifPKO09iTm181Y.ai7OO5KBjGcx
 export async function POST(req) {
   const ip = clientIp(req);
   const { email, password } = await req.json();
+  if (String(email || "").length > 160 || String(password || "").length > 128)
+    return NextResponse.json({ error: "Credenciales incorrectas." }, { status: 401 });
   const key = loginKey(ip, email);
   const entry = await get("SELECT failures,blocked_until FROM login_attempts WHERE key=?", key);
   if (entry?.blocked_until && new Date(entry.blocked_until) > new Date())

@@ -21,6 +21,10 @@ const server = externalTls
       cert: fs.readFileSync(process.env.HTTPS_CERT_PATH || 'certs/localhost.pem'),
       minVersion: 'TLSv1.2',
     }, (req, res) => handle(req, res));
+server.requestTimeout = 120000;
+server.headersTimeout = 15000;
+server.keepAliveTimeout = 5000;
+server.maxHeadersCount = 100;
 server.listen(port, host, () => {
   console.log(`IRTRA disponible en ${externalTls ? 'http' : 'https'}://${host}:${port}`);
 });

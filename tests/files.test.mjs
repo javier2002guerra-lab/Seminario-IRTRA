@@ -39,6 +39,15 @@ test("rechaza PDF corrupto con cabecera aparente", async () =>
     validateFile("roto.pdf", "application/pdf", Buffer.from("%PDF-1.7 basura")),
     /corrupto/,
   ));
+test("rechaza PDF con JavaScript o acciones activas", async () =>
+  await assert.rejects(
+    validateFile(
+      "activo.pdf",
+      "application/pdf",
+      Buffer.from("%PDF-1.7\n1 0 obj <</JavaScript /OpenAction>> endobj\n%%EOF"),
+    ),
+    /acciones activas/,
+  ));
 test("rechaza imagen ilegible con firma aparente", async () =>
   await assert.rejects(
     validateFile(

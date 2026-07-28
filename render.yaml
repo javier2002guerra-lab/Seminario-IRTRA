@@ -23,7 +23,7 @@ services:
       - key: TRUST_PROXY
         value: "true"
       - key: ALLOW_LOCAL_EMBED
-        value: "true"
+        value: "false"
       - key: COOKIE_SECURE
         value: "true"
       - key: SESSION_TTL
