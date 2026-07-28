@@ -4,6 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
+import { verifyManagerialTemplate } from "../lib/excel-template.js";
 
 const root = process.cwd();
 const output = path.resolve(process.argv[2] || "INFORME GERENCIAL - DATOS ACTUALES.xlsm");
@@ -12,13 +13,13 @@ const surveys = await query(`
   FROM surveys s
   LEFT JOIN survey_areas sa ON sa.survey_id=s.id
   LEFT JOIN areas a ON a.id=sa.area_id
-  WHERE s.status<>'Error'
+  WHERE s.status<>'Error' AND s.validation_status='Confirmada'
   GROUP BY s.id ORDER BY s.created_at
 `);
 const ratings = await query(`
   SELECT sr.survey_id,sr.service_name,sr.rating,sr.score,sr.negative
   FROM service_ratings sr JOIN surveys s ON s.id=sr.survey_id
-  WHERE s.status<>'Error' ORDER BY sr.id
+  WHERE s.status<>'Error' AND s.validation_status='Confirmada' ORDER BY sr.id
 `);
 const bySurvey = new Map();
 for (const rating of ratings) {
@@ -39,12 +40,14 @@ const payload = surveys.map((row) => {
 });
 const temporary = path.join(os.tmpdir(), `irtra-audit-${crypto.randomUUID()}.json`);
 try {
+  const template = path.join(root, "data", "excel_templates", "INFORME GERENCIAL ENCUESTAS.xlsm");
+  verifyManagerialTemplate(template);
   fs.writeFileSync(temporary, JSON.stringify(payload), { encoding: "utf8", mode: 0o600 });
   const python = process.env.PYTHON_COMMAND || "python";
   const result = spawnSync(
     python,
     [path.join(root, "scripts", "fill-managerial-template.py"),
-      path.join(root, "data", "excel_templates", "INFORME GERENCIAL ENCUESTAS.xlsm"),
+      template,
       temporary, output],
     { cwd: root, encoding: "utf8", timeout: 180000, windowsHide: true },
   );

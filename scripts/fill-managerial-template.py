@@ -1,4 +1,4 @@
-import io, json, re, shutil, sys, unicodedata, zipfile
+import io, json, os, re, shutil, sys, unicodedata, zipfile
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from datetime import datetime
@@ -148,7 +148,9 @@ def save_with_native_excel(template, workbook, output, original_values):
     for key in original_values.keys() | current_values.keys():
         before=original_values.get(key); after=current_values.get(key)
         if before != after: changes.append((*key,after))
-    if sys.platform != "win32":
+    # El parche del paquete es el modo seguro predeterminado: no inicia Office
+    # ni ejecuta las macros. Excel nativo queda como compatibilidad explícita.
+    if sys.platform != "win32" or os.getenv("XLSM_USE_NATIVE_EXCEL") != "true":
         patch_xlsm(template,output,changes)
         return
     shutil.copy2(template,output)
@@ -156,9 +158,10 @@ def save_with_native_excel(template, workbook, output, original_values):
         import win32com.client
         excel=win32com.client.DispatchEx("Excel.Application")
         excel.Visible=False; excel.DisplayAlerts=False
+        excel.AutomationSecurity=3
         book=excel.Workbooks.Open(str(Path(output).resolve()),UpdateLinks=0,ReadOnly=False)
         for sheet,row,col,value in changes: book.Worksheets(sheet).Cells(row,col).Value=value
-        book.RefreshAll(); excel.CalculateFullRebuild(); book.Save(); book.Close(SaveChanges=True); excel.Quit()
+        excel.CalculateFullRebuild(); book.Save(); book.Close(SaveChanges=True); excel.Quit()
     except Exception:
         try: excel.Quit()
         except Exception: pass

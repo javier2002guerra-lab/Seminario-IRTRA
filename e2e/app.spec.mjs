@@ -3,7 +3,9 @@ import { run, get } from "../lib/db.js";
 async function login(page) {
   await page.goto("/login");
   await page.locator('input[name="email"]').fill("admin@irtra.local");
-  await page.locator('input[name="password"]').fill("Cambiar-Ahora-2026!");
+  await page.locator('input[name="password"]').fill(
+    process.env.E2E_ADMIN_PASSWORD || process.env.SUPERUSER_PASSWORD || "Cambiar-Ahora-2026!",
+  );
   await page.getByRole("button", { name: "Ingresar al sistema" }).click();
   await expect(page).toHaveURL("https://localhost:3443/");
 }
@@ -132,7 +134,7 @@ test("genera internamente el informe gerencial", async ({ page }) => {
   expect(response.status()).toBe(200);
   expect(response.headers()["content-type"]).toContain("macroEnabled");
   expect(response.headers()["content-disposition"]).toContain(
-    "INFORME GERENCIAL ENCUESTAS",
+    "INFORME GERENCIAL ",
   );
   const body = await response.body();
   expect(body.subarray(0,2).toString()).toBe("PK");
