@@ -50,7 +50,7 @@ export async function GET(req) {
     const python = process.env.PYTHON_COMMAND || (process.platform === "win32" ? "python" : "python3");
     const pythonPackages = path.join(/*turbopackIgnore: true*/ process.cwd(), ".python-packages");
     const pythonPath = [pythonPackages, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter);
-    const result = spawnSync(python,[path.join(/*turbopackIgnore: true*/ process.cwd(),"scripts","fill-managerial-template.py"),template,input,output],{
+    const result = spawnSync(/*turbopackIgnore: true*/ python,[path.join(/*turbopackIgnore: true*/ process.cwd(),"scripts","fill-managerial-template.py"),template,input,output],{
       encoding:"utf8",
       timeout:120000,
       windowsHide:true,

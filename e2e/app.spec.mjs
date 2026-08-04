@@ -1,5 +1,8 @@
 import { test, expect } from "@playwright/test";
 import { run, get } from "../lib/db.js";
+test.beforeEach(async () => {
+  await run("DELETE FROM login_attempts");
+});
 async function login(page) {
   await page.goto("/login");
   await page.locator('input[name="email"]').fill("admin@irtra.local");
@@ -141,6 +144,23 @@ test("rechaza credenciales incorrectas sin filtrar información", async ({
 test("bloquea API sin sesión", async ({ request }) => {
   const r = await request.get("/api/export", { maxRedirects: 0 });
   expect([307, 401]).toContain(r.status());
+});
+
+test("rechaza orígenes cruzados y cuerpos malformados", async ({ request }) => {
+  const crossSite = await request.post("/api/auth/login", {
+    headers: { Origin: "https://evil.example" },
+    data: { email: "admin@example.com", password: "irrelevante" },
+  });
+  expect(crossSite.status()).toBe(403);
+
+  const malformed = await request.post("/api/auth/login", {
+    headers: {
+      Origin: "https://localhost:3443",
+      "Content-Type": "application/json",
+    },
+    data: "{",
+  });
+  expect(malformed.status()).toBe(400);
 });
 test("genera internamente el informe gerencial", async ({ page }) => {
   await login(page);

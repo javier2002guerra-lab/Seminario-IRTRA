@@ -24,7 +24,7 @@ export async function GET(req) {
     const python =
       process.env.PYTHON_COMMAND ||
       (process.platform === "win32" ? "python" : "python3");
-    const result = spawnSync(
+    const result = spawnSync(/*turbopackIgnore: true*/
       python,
       [path.join(/*turbopackIgnore: true*/ process.cwd(), "scripts", "export-statistical-report.py"), input, output],
       {

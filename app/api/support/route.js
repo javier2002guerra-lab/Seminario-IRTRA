@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { executiveData } from "@/lib/executive";
+import { consumeRateLimit } from "@/lib/db";
 export const runtime = "nodejs";
 
 function cleanMessages(value) {
@@ -17,7 +18,8 @@ function cleanMessages(value) {
       role: item.role,
       content: item.content.trim().slice(0, 4000),
     }))
-    .filter((item) => item.content);
+    .filter((item) => item.content)
+    .slice(-40);
 }
 
 function systemInstructions(user, data) {
@@ -66,6 +68,11 @@ export async function POST(request) {
     return NextResponse.json(
       { error: "ATLAS no está configurado." },
       { status: 503 },
+    );
+  if (await consumeRateLimit(`atlas:${user.id}`, 30, 60))
+    return NextResponse.json(
+      { error: "Demasiadas solicitudes seguidas. Espera un minuto." },
+      { status: 429 },
     );
   let messages;
   try {

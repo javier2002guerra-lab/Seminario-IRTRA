@@ -18,6 +18,8 @@ services:
         value: 0.0.0.0
       - key: APP_BASE_URL
         value: https://irtraencuestas.org
+      - key: ALLOWED_ORIGINS
+        value: https://irtra-encuestas.onrender.com,https://irtraencuestas.org
       - key: EXTERNAL_TLS_TERMINATION
         value: "true"
       - key: TRUST_PROXY

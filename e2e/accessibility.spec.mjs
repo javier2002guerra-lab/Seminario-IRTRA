@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { run } from "../lib/db.js";
+test.beforeEach(async () => {
+  await run("DELETE FROM login_attempts");
+});
 test("las pantallas principales no tienen barreras críticas de accesibilidad", async ({
   page,
 }) => {

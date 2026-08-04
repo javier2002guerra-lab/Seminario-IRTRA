@@ -3,7 +3,7 @@ import { currentUser, can } from "@/lib/auth";
 import { run, audit } from "@/lib/db";
 export async function POST(req) {
   const user = await currentUser();
-  if (!can(user, "verificador"))
+  if (!can(user, "admin"))
     return NextResponse.json({ error: "Sin permiso." }, { status: 403 });
   const b = await req.json();
   if (!b.name)
@@ -39,7 +39,7 @@ export async function POST(req) {
 }
 export async function PATCH(req) {
   const user = await currentUser();
-  if (!can(user, "verificador"))
+  if (!can(user, "admin"))
     return NextResponse.json({ error: "Sin permiso." }, { status: 403 });
   const b = await req.json();
   await run(
