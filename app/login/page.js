@@ -28,7 +28,10 @@ export default function Login() {
     <div className="login">
       <section className="login-art">
         <div className="login-logo">
-          <img src="/images/logo-los-hostales.webp" alt="Los Hostales del IRTRA" />
+          <img
+            src="/images/logo-los-hostales.webp"
+            alt="Los Hostales del IRTRA"
+          />
         </div>
         <h1>Decisiones de calidad respaldadas por evidencia.</h1>
         <p>
@@ -42,16 +45,23 @@ export default function Login() {
           <h2>Bienvenido</h2>
           <p className="muted">Ingresa tus credenciales institucionales.</p>
           {error && <div className="notice">{error}</div>}
-          <label>Correo electrónico</label>
+          <label htmlFor="login-email">Correo electrónico</label>
           <input
+            id="login-email"
             className="input"
             type="email"
             name="email"
             defaultValue="admin@irtra.local"
             required
           />
-          <label>Contraseña</label>
-          <input className="input" type="password" name="password" required />
+          <label htmlFor="login-password">Contraseña</label>
+          <input
+            id="login-password"
+            className="input"
+            type="password"
+            name="password"
+            required
+          />
           <button className="btn" disabled={loading}>
             {loading ? "Verificando…" : "Ingresar al sistema"}
           </button>

@@ -7,7 +7,7 @@ services:
     branch: main
     buildCommand: npm ci && npm run build
     startCommand: npm run db:migrate && npm start
-    healthCheckPath: /login
+    healthCheckPath: /api/health
     autoDeployTrigger: commit
     domains:
       - irtraencuestas.org
@@ -54,6 +54,30 @@ services:
         value: gpt-5.4-mini
       - key: OPENAI_TIMEOUT_MS
         value: "90000"
+      - key: REPORT_SCHEDULER_ENABLED
+        value: "true"
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: REPORT_FROM_EMAIL
+        sync: false
+      - key: TEAMS_WEBHOOK_URL
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: INTERNAL_WHATSAPP_RECIPIENTS
+        sync: false
+      - key: INTERNAL_ALERT_EMAILS
+        sync: false
+      - key: INTERNAL_ALERT_CHANNELS
+        value: email
 
 databases:
   - name: irtra-encuestas-db

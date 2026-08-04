@@ -1,8 +1,10 @@
 import Shell from "@/components/Shell";
 import { query } from "@/lib/db";
 import ActionManager, { ActionUpdate } from "./action-manager";
+import { currentUser } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 export default async function ActionsPage() {
+  const user = await currentUser();
   const [plans, areas, users, surveys] = await Promise.all([
     query(
       "SELECT ap.*,a.name area_name,u.name owner_name,s.original_name FROM action_plans ap LEFT JOIN areas a ON a.id=ap.area_id LEFT JOIN users u ON u.id=ap.owner_id LEFT JOIN surveys s ON s.id=ap.survey_id ORDER BY CASE ap.status WHEN 'En ejecución' THEN 1 WHEN 'Pendiente' THEN 2 WHEN 'Verificada' THEN 3 ELSE 4 END,ap.due_at NULLS LAST,ap.id DESC",
@@ -22,8 +24,8 @@ export default async function ActionsPage() {
     ).length,
     verified = plans.filter((x) => x.status === "Verificada").length,
     savings = plans
-      .filter((x) => x.status === "Verificada")
-      .reduce((n, x) => n + Number(x.estimated_savings || 0), 0);
+      .filter((x) => x.financial_status === "Validado")
+      .reduce((n, x) => n + Number(x.actual_savings || 0), 0);
   return (
     <Shell active="/acciones">
       <div className="eyebrow">Mejora continua</div>
@@ -92,7 +94,7 @@ export default async function ActionsPage() {
                   </span>
                 </td>
                 <td>
-                  <ActionUpdate plan={p} />
+                  <ActionUpdate plan={p} isAdmin={user?.role === "admin"} />
                 </td>
               </tr>
             ))}

@@ -94,7 +94,7 @@ export default function ActionManager({ areas, users, surveys }) {
     </form>
   );
 }
-export function ActionUpdate({ plan }) {
+export function ActionUpdate({ plan, isAdmin = false }) {
   const [status, setStatus] = useState(plan.status),
     [evidence, setEvidence] = useState(plan.evidence || ""),
     [result, setResult] = useState(plan.result || ""),
@@ -139,6 +139,64 @@ export function ActionUpdate({ plan }) {
         </button>
         {msg && <small>{msg}</small>}
       </div>
+      {isAdmin && <FinancialValidation plan={plan} />}
     </details>
+  );
+}
+function FinancialValidation({ plan }) {
+  const [status, setStatus] = useState(plan.financial_status || "Sin validar"),
+    [actual, setActual] = useState(
+      plan.actual_savings ?? plan.estimated_savings ?? 0,
+    ),
+    [note, setNote] = useState(plan.financial_note || ""),
+    [msg, setMsg] = useState("");
+  async function validate() {
+    const r = await fetch(`/api/actions/${plan.id}/finance`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          financial_status: status,
+          actual_savings: actual,
+          financial_note: note,
+        }),
+      }),
+      j = await r.json();
+    setMsg(r.ok ? "Impacto financiero validado." : j.error);
+    if (r.ok) setTimeout(() => location.reload(), 500);
+  }
+  return (
+    <div className="financial-validation">
+      <b>Validación financiera</b>
+      <select
+        className="input"
+        value={status}
+        onChange={(e) => setStatus(e.target.value)}
+      >
+        {["Sin validar", "Validado", "Rechazado", "Requiere evidencia"].map(
+          (x) => (
+            <option key={x}>{x}</option>
+          ),
+        )}
+      </select>
+      <input
+        className="input"
+        type="number"
+        min="0"
+        step="0.01"
+        value={actual}
+        onChange={(e) => setActual(e.target.value)}
+        placeholder="Ahorro real validado"
+      />
+      <textarea
+        className="input"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Fuente contable, cálculo o evidencia de validación"
+      />
+      <button className="btn secondary" type="button" onClick={validate}>
+        Validar impacto financiero
+      </button>
+      {msg && <small>{msg}</small>}
+    </div>
   );
 }

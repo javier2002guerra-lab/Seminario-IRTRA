@@ -190,6 +190,13 @@ export default async function Dashboard({ searchParams }) {
           <Bars rows={data.topics} />
         </section>
         <section className="card">
+          <h3>Pronóstico histórico</h3>
+          <div className="quality-score">{data.forecast.predicted}</div>
+          <p>quejas proyectadas para el próximo mes</p>
+          <div className="quality-details"><span>Confianza {data.forecast.confidence}</span><span>Pendiente {data.forecast.slope >= 0 ? "+" : ""}{data.forecast.slope}/mes</span><span>R² {data.forecast.r2 ?? "—"}</span></div>
+          <p className="muted">Modelo: {data.forecast.method}. Es una proyección orientativa basada en los últimos 12 meses, no una certeza.</p>
+        </section>
+        <section className="card">
           <h3>Calidad de la IA</h3>
           <div className="quality-score">
             {Number(data.aiQuality?.reviewed || 0)

@@ -13,13 +13,14 @@ const base = [
   ["/areas", "⌘", "Áreas"],
   ["/usuarios", "♙", "Usuarios"],
   ["/auditoria", "◉", "Auditoría"],
+  ["/integraciones", "⚙", "Integraciones"],
 ];
 export default async function Shell({ children, active = "/" }) {
   const user = await currentUser();
   if (!user) redirect("/login?reason=session-replaced");
   const unread = Number((await get("SELECT count(*)::int n FROM notifications WHERE user_id=? AND read_at IS NULL", user.id))?.n || 0);
   const nav = base
-    .filter(([href]) => href !== "/usuarios" || user?.role === "admin")
+    .filter(([href]) => !["/usuarios", "/integraciones"].includes(href) || user?.role === "admin")
     .filter(
       ([href]) =>
         href !== "/auditoria" ||
