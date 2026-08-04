@@ -4,6 +4,7 @@ import "./background-fit.css";
 import "./review-workspace.css";
 import "./digital-sheet.css";
 import "./enterprise.css";
+import "./support.css";
 export const metadata = {
   title: "IRTRA Gestión de Encuestas",
   description: "Gestión inteligente y segura de encuestas",
