@@ -17,6 +17,11 @@ export default async function Page({ searchParams }) {
     service: "sr.service_name",
     status: "s.status",
   };
+  if (p.q) {
+    clauses.push("(s.original_name ILIKE ? OR s.summary ILIKE ? OR CAST(s.id AS TEXT)=?)");
+    const term = String(p.q).trim().slice(0,120);
+    vals.push(`%${term}%`, `%${term}%`, term);
+  }
   for (const [k, col] of Object.entries(exact))
     if (p[k]) {
       clauses.push(`${col}=?`);

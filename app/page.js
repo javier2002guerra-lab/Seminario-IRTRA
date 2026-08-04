@@ -1,24 +1,353 @@
 import Shell from "@/components/Shell";
-import { get, query } from "@/lib/db";
 import { currentUser } from "@/lib/auth";
 import { surveyScope } from "@/lib/scope";
 import { parseMonth, previousMonth } from "@/lib/report-range";
+import { executiveData } from "@/lib/executive";
 export const dynamic = "force-dynamic";
-
 export default async function Dashboard({ searchParams }) {
-  const p=await searchParams, selected=parseMonth(p?.month), compared=parseMonth(p?.compare||previousMonth(selected.value));
-  const user=await currentUser(), scope=surveyScope(user,"s"), periodWhere=`${scope.where} AND s.created_at>=?::date AND s.created_at<?::date`, args=[...scope.params,selected.from,selected.toExclusive];
-  const count=async(extra="1=1")=>Number((await get(`SELECT count(*) n FROM surveys s WHERE ${periodWhere} AND ${extra}`,...args)).n);
-  const total=await count(), complaints=await count("s.category IN ('Queja','Mixta')"), suggestions=await count("s.category IN ('Sugerencia','Mixta')"), resolved=await count("s.status IN ('Resuelto','Cerrado')"), overdue=await count("s.due_at<CURRENT_TIMESTAMP AND s.status NOT IN ('Resuelto','Cerrado','Error')"), atRisk=await count("s.due_at>=CURRENT_TIMESTAMP AND s.due_at<=CURRENT_TIMESTAMP + INTERVAL '4 hours' AND s.status NOT IN ('Resuelto','Cerrado','Error')");
-  const metrics=[["Encuestas",total],["Quejas",complaints],["Sugerencias",suggestions],["Felicitaciones",await count("s.category='Felicitación'")],["Críticos y altos",await count("s.priority IN ('Crítico','Alto')")],["Por revisar",await count("s.needs_review=1")],["SLA vencidos",overdue],["SLA en riesgo",atRisk]];
-  const priorities=await query(`SELECT priority label,count(*) value FROM surveys s WHERE ${periodWhere} GROUP BY priority ORDER BY value DESC`,...args), areas=await query(`SELECT a.name label,count(DISTINCT s.id) value FROM surveys s JOIN survey_areas sa ON sa.survey_id=s.id JOIN areas a ON a.id=sa.area_id WHERE ${periodWhere} GROUP BY a.id ORDER BY value DESC`,...args), trends=(await query(`SELECT date(s.created_at) label,count(*) value FROM surveys s WHERE ${periodWhere} GROUP BY date(s.created_at) ORDER BY label DESC LIMIT 31`,...args)).reverse(), services=await query(`SELECT sr.service_name label,count(*) value FROM surveys s JOIN service_ratings sr ON sr.survey_id=s.id WHERE ${periodWhere} AND sr.negative=1 GROUP BY sr.service_name ORDER BY value DESC LIMIT 8`,...args), topics=await query(`SELECT s.primary_topic label,count(*) value FROM surveys s WHERE ${periodWhere} AND s.primary_topic<>'' GROUP BY s.primary_topic ORDER BY value DESC LIMIT 8`,...args);
-  const reviewed=Number((await get(`SELECT count(DISTINCT c.survey_id) n FROM corrections c JOIN surveys s ON s.id=c.survey_id WHERE ${periodWhere}`,...args)).n), validated=await query(`SELECT s.category,s.priority,s.ai_original FROM surveys s WHERE ${periodWhere} AND EXISTS(SELECT 1 FROM corrections c WHERE c.survey_id=s.id)`,...args), matching=validated.filter(x=>{try{const a=JSON.parse(x.ai_original);return a.category===x.category&&a.priority===x.priority}catch{return false}}).length;
-  const comparison=await get(`SELECT count(*)::int total,count(*) FILTER (WHERE s.category IN ('Queja','Mixta'))::int complaints,count(*) FILTER (WHERE s.category IN ('Sugerencia','Mixta'))::int suggestions,count(*) FILTER (WHERE s.status IN ('Resuelto','Cerrado'))::int resolved FROM surveys s WHERE ${scope.where} AND s.created_at>=?::date AND s.created_at<?::date`,...scope.params,compared.from,compared.toExclusive);
-  return <Shell active="/"><div className="eyebrow">Visión general</div><h1 className="title">Resumen ejecutivo</h1><p className="subtitle">Consulta meses anteriores y compara sus resultados.</p>
-    <form className="toolbar card"><label>Mes a consultar <input className="input" type="month" name="month" defaultValue={selected.value}/></label><label>Comparar con <input className="input" type="month" name="compare" defaultValue={compared.value}/></label><button className="btn">Actualizar estadísticas</button></form>
-    <div className="grid metrics">{metrics.map(([label,value])=><div className="card metric" key={label}><span>{label}</span><strong>{value}</strong></div>)}</div>
-    <div className="grid two" style={{marginTop:18}}><Comparison current={{total,complaints,suggestions,resolved}} previous={comparison} currentLabel={selected.value} previousLabel={compared.value}/><div className="card"><h3>Cumplimiento operativo</h3><strong style={{fontSize:35}}>{total?Math.round(resolved/total*100):0}%</strong><p className="muted">de casos resueltos o cerrados</p><p><span className="badge sla-overdue">{overdue} vencidos</span> <span className="badge sla-risk">{atRisk} en riesgo</span></p></div><Stats title="Casos por prioridad" rows={priorities}/><Stats title="Casos por área" rows={areas}/><Stats title="Tendencia diaria" rows={trends}/><Stats title="Servicios peor calificados" rows={services}/><Stats title="Temas frecuentes" rows={topics}/><div className="card"><h3>Calidad de lectura automática</h3><strong style={{fontSize:35}}>{total?Math.round(reviewed/total*100):0}%</strong><p className="muted">de casos corregidos por una persona</p><strong style={{fontSize:28}}>{validated.length?Math.round(matching/validated.length*100):0}%</strong><p className="muted">coincidencia aproximada entre lectura y validación</p></div></div></Shell>;
+  const p = await searchParams,
+    selected = parseMonth(p?.month),
+    compared = parseMonth(p?.compare || previousMonth(selected.value)),
+    user = await currentUser(),
+    scope = surveyScope(user, "s"),
+    [data, previous] = await Promise.all([
+      executiveData({
+        from: selected.from,
+        to: new Date(new Date(selected.toExclusive).getTime() - 86400000)
+          .toISOString()
+          .slice(0, 10),
+        scope,
+      }),
+      executiveData({
+        from: compared.from,
+        to: new Date(new Date(compared.toExclusive).getTime() - 86400000)
+          .toISOString()
+          .slice(0, 10),
+        scope,
+      }),
+    ]);
+  return (
+    <Shell active="/">
+      <div className="executive-heading">
+        <div>
+          <div className="eyebrow">Inteligencia empresarial</div>
+          <h1 className="title">Centro ejecutivo de experiencia</h1>
+          <p className="subtitle">
+            Decisiones, riesgos y acciones respaldadas por la voz del huésped.
+          </p>
+        </div>
+        <div className="freshness">
+          <span className="status-dot" />
+          Datos al {new Date(data.generatedAt).toLocaleString("es-GT")}
+        </div>
+      </div>
+      <form className="toolbar card executive-filters">
+        <label>
+          Mes a consultar
+          <input
+            className="input"
+            type="month"
+            name="month"
+            defaultValue={selected.value}
+          />
+        </label>
+        <label>
+          Comparar con
+          <input
+            className="input"
+            type="month"
+            name="compare"
+            defaultValue={compared.value}
+          />
+        </label>
+        <button className="btn">Actualizar tablero</button>
+        <a
+          className="btn secondary"
+          href={`/reportes/ejecutivo?from=${data.from}&to=${data.to}`}
+          target="_blank"
+        >
+          Informe ejecutivo
+        </a>
+      </form>
+      <section className="executive-kpis">
+        <Kpi
+          title="Satisfacción general"
+          value={
+            data.kpis.satisfaction ? `${data.kpis.satisfaction}/5` : "Sin datos"
+          }
+          delta={delta(
+            data.kpis.satisfaction,
+            previous.kpis.satisfaction,
+            "pts",
+          )}
+          tone={data.kpis.satisfaction >= 4 ? "good" : "warning"}
+        />
+        <Kpi
+          title="Tasa de quejas"
+          value={`${data.kpis.complaintRate}%`}
+          delta={delta(
+            previous.kpis.complaintRate,
+            data.kpis.complaintRate,
+            "pp",
+          )}
+          tone={data.kpis.complaintRate <= 20 ? "good" : "danger"}
+        />
+        <Kpi
+          title="Resolución de casos"
+          value={`${data.kpis.resolutionRate}%`}
+          delta={delta(
+            data.kpis.resolutionRate,
+            previous.kpis.resolutionRate,
+            "pp",
+          )}
+          tone="good"
+        />
+        <Kpi
+          title="Cumplimiento de SLA"
+          value={`${data.kpis.slaRate}%`}
+          tone={data.kpis.slaRate >= 85 ? "good" : "warning"}
+        />
+        <Kpi
+          title="Huéspedes recuperados"
+          value={`${data.kpis.recoveryRate}%`}
+          detail={`${data.recovery?.recovered || 0} de ${data.recovery?.contacted || 0} gestiones`}
+        />
+        <Kpi
+          title="Acciones verificadas"
+          value={`${data.kpis.actionRate}%`}
+          detail={`Q ${Number(data.actions?.savings || 0).toLocaleString("es-GT")} de ahorro documentado`}
+        />
+      </section>
+      {data.alerts.length > 0 && (
+        <section className="executive-alerts">
+          <div className="section-heading">
+            <div>
+              <div className="eyebrow">Atención gerencial</div>
+              <h2>Alertas predictivas y operativas</h2>
+            </div>
+            <a href="/alertas">Ver centro de alertas →</a>
+          </div>
+          <div className="alert-cards">
+            {data.alerts.map((a, i) => (
+              <article className={`insight-alert ${a.level}`} key={i}>
+                <span>!</span>
+                <div>
+                  <b>{a.title}</b>
+                  <p>{a.message}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+      <div className="executive-layout">
+        <section className="card wide">
+          <div className="section-heading">
+            <div>
+              <h3>Evolución de experiencia</h3>
+              <p className="muted">Volumen, quejas y satisfacción mensual.</p>
+            </div>
+          </div>
+          <Trend rows={data.trend} />
+        </section>
+        <section className="card">
+          <h3>Recomendaciones de ATLAS</h3>
+          <p className="muted">
+            Acciones sugeridas a partir de los indicadores del período.
+          </p>
+          <ol className="recommendations">
+            {data.recommendations.map((x, i) => (
+              <li key={i}>{x}</li>
+            ))}
+          </ol>
+          <a className="btn" href="/acciones">
+            Crear plan de acción
+          </a>
+        </section>
+        <section className="card">
+          <h3>Ranking por sede o servicio</h3>
+          <p className="muted">
+            Ordenado por satisfacción; requiere calificaciones disponibles.
+          </p>
+          <Ranking rows={data.venues} />
+        </section>
+        <section className="card">
+          <h3>Áreas que requieren atención</h3>
+          <Ranking rows={data.areas} area />
+        </section>
+        <section className="card">
+          <h3>Servicios peor calificados</h3>
+          <Bars
+            rows={data.services.map((x) => ({
+              label: x.label,
+              value: Number(x.negatives),
+              note: `${x.score || "—"}/5`,
+            }))}
+          />
+        </section>
+        <section className="card">
+          <h3>Temas más frecuentes</h3>
+          <Bars rows={data.topics} />
+        </section>
+        <section className="card">
+          <h3>Calidad de la IA</h3>
+          <div className="quality-score">
+            {Number(data.aiQuality?.reviewed || 0)
+              ? `${Math.round((Number(data.aiQuality.exact || 0) / Number(data.aiQuality.reviewed)) * 100)}%`
+              : "—"}
+          </div>
+          <p className="muted">
+            Coincidencia exacta de clasificación y prioridad en casos evaluados.
+          </p>
+          <div className="quality-details">
+            <span>{data.aiQuality?.reviewed || 0} evaluaciones</span>
+            <span>
+              {data.aiQuality?.fields_corrected || 0} campos corregidos
+            </span>
+            <span>
+              {data.summary?.pending_review || 0} pendientes de revisión
+            </span>
+          </div>
+        </section>
+        <section className="card">
+          <h3>Impacto empresarial documentado</h3>
+          <div className="impact-value">
+            Q{" "}
+            {Number(data.actions?.savings || 0).toLocaleString("es-GT", {
+              minimumFractionDigits: 2,
+            })}
+          </div>
+          <p className="muted">
+            Ahorro estimado registrado en planes de acción verificados. Es una
+            estimación operativa, no un dato contable.
+          </p>
+          <a href="/acciones">Ver evidencia de acciones →</a>
+        </section>
+      </div>
+      <details className="card metric-methodology">
+        <summary>Definiciones y metodología de los indicadores</summary>
+        <ul>
+          <li>
+            <b>Satisfacción general:</b> promedio de calificaciones disponibles,
+            escala 1 a 5.
+          </li>
+          <li>
+            <b>Tasa de quejas:</b> encuestas “Queja” o “Mixta” entre encuestas
+            del período.
+          </li>
+          <li>
+            <b>Resolución:</b> casos “Resuelto” o “Cerrado” entre encuestas del
+            período.
+          </li>
+          <li>
+            <b>Cumplimiento SLA:</b> casos resueltos antes de la fecha límite
+            entre casos resueltos.
+          </li>
+          <li>
+            <b>Recuperación:</b> gestiones “Recuperado” entre gestiones de
+            recuperación.
+          </li>
+          <li>
+            <b>Acciones verificadas:</b> planes “Verificada” entre planes
+            creados en el período.
+          </li>
+        </ul>
+        <p className="muted">
+          Fuente: base transaccional de IRTRA ENCUESTAS. Se actualiza al cargar
+          la pantalla.
+        </p>
+      </details>
+    </Shell>
+  );
 }
-function Comparison({current,previous,currentLabel,previousLabel}){const rows=[["Encuestas","total"],["Quejas","complaints"],["Sugerencias","suggestions"],["Resueltas","resolved"]];return <div className="card"><h3>Comparación mensual</h3><p className="muted">{currentLabel} frente a {previousLabel}</p><table><thead><tr><th>Indicador</th><th>{currentLabel}</th><th>{previousLabel}</th><th>Variación</th></tr></thead><tbody>{rows.map(([label,key])=>{const a=Number(current[key]||0),b=Number(previous[key]||0),delta=a-b;return <tr key={key}><td>{label}</td><td><b>{a}</b></td><td>{b}</td><td className={delta>0?"comparison-up":delta<0?"comparison-down":""}>{delta>0?"+":""}{delta}</td></tr>})}</tbody></table></div>}
-function Stats({title,rows}){const max=Math.max(1,...rows.map(x=>Number(x.value)));return <div className="card"><h3>{title}</h3>{rows.length?rows.map(x=><div key={String(x.label)} style={{margin:"12px 0"}}><div style={{display:"flex",justifyContent:"space-between"}}><span>{formatLabel(x.label)}</span><b>{x.value}</b></div><div style={{height:7,background:"#e7eeee",borderRadius:8}}><div style={{height:"100%",width:`${Number(x.value)/max*100}%`,background:"#0aa18e",borderRadius:8}}/></div></div>):<p className="muted">Sin datos suficientes.</p>}</div>}
-function formatLabel(value){if(!value)return "Sin determinar";if(value instanceof Date)return value.toLocaleDateString("es-GT");return String(value)}
+function Kpi({ title, value, delta: change, detail, tone = "neutral" }) {
+  return (
+    <article className={`card executive-kpi ${tone}`}>
+      <span>{title}</span>
+      <strong>{value}</strong>
+      {change && <small>{change}</small>}
+      {detail && <small>{detail}</small>}
+    </article>
+  );
+}
+function delta(a, b, unit) {
+  const n = Number(a || 0) - Number(b || 0);
+  return `${n >= 0 ? "▲" : "▼"} ${Math.abs(n).toFixed(unit === "pts" ? 1 : 0)} ${unit} frente al período comparado`;
+}
+function Trend({ rows }) {
+  const max = Math.max(1, ...rows.map((x) => Number(x.total)));
+  return rows.length ? (
+    <div className="trend-chart">
+      {rows.map((x) => (
+        <div className="trend-column" key={x.label}>
+          <div className="trend-bars">
+            <i
+              style={{
+                height: `${Math.max(4, (Number(x.total) / max) * 100)}%`,
+              }}
+              title={`${x.total} encuestas`}
+            />
+            <i
+              className="complaint"
+              style={{
+                height: `${Math.max(2, (Number(x.complaints) / max) * 100)}%`,
+              }}
+              title={`${x.complaints} quejas`}
+            />
+          </div>
+          <b>{x.satisfaction || "—"}</b>
+          <small>{x.label}</small>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <p className="muted">Aún no hay datos para mostrar la tendencia.</p>
+  );
+}
+function Ranking({ rows, area = false }) {
+  return (
+    <div className="ranking">
+      {rows.length ? (
+        rows.map((x, i) => (
+          <div key={x.label}>
+            <span className="rank-number">{i + 1}</span>
+            <span>
+              <b>{x.label}</b>
+              <small>
+                {x.total} encuestas · {x.complaints} quejas
+              </small>
+            </span>
+            <strong>
+              {area ? `${x.resolved || 0} res.` : `${x.satisfaction || "—"}/5`}
+            </strong>
+          </div>
+        ))
+      ) : (
+        <p className="muted">Sin datos suficientes.</p>
+      )}
+    </div>
+  );
+}
+function Bars({ rows }) {
+  const max = Math.max(1, ...rows.map((x) => Number(x.value)));
+  return (
+    <div className="mini-bars">
+      {rows.length ? (
+        rows.map((x) => (
+          <div key={x.label}>
+            <span>{x.label}</span>
+            <i>
+              <b style={{ width: `${(Number(x.value) / max) * 100}%` }} />
+            </i>
+            <strong>
+              {x.value}
+              {x.note && <small>{x.note}</small>}
+            </strong>
+          </div>
+        ))
+      ) : (
+        <p className="muted">Sin datos suficientes.</p>
+      )}
+    </div>
+  );
+}

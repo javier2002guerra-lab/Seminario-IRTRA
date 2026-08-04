@@ -7,6 +7,7 @@ import { currentUser } from "@/lib/auth";
 import { surveyScope } from "@/lib/scope";
 import ReviewWorkspace from "./review-workspace";
 import ValidationActions from "./validation-actions";import DeleteSurvey from "./delete-survey";
+import RecoveryForm from "./recovery-form";
 import "@/app/correction-history.css";
 export const dynamic = "force-dynamic";
 export default async function Page({ params }) {
@@ -36,7 +37,8 @@ export default async function Page({ params }) {
       "SELECT DISTINCT u.id,u.name FROM users u WHERE u.active=1 AND u.role IN ('admin','verificador') ORDER BY u.name",
     ),
     ratings = await query("SELECT service_name,rating,score,negative FROM service_ratings WHERE survey_id=? ORDER BY id",r.id),
-    deletionRequest = await get("SELECT d.*,u.name requester_name FROM deletion_requests d JOIN users u ON u.id=d.requested_by WHERE d.survey_id=? AND d.status='Pendiente' ORDER BY d.id DESC LIMIT 1",r.id);
+    deletionRequest = await get("SELECT d.*,u.name requester_name FROM deletion_requests d JOIN users u ON u.id=d.requested_by WHERE d.survey_id=? AND d.status='Pendiente' ORDER BY d.id DESC LIMIT 1",r.id),
+    recoveries = await query("SELECT gr.*,u.name user_name FROM guest_recovery gr JOIN users u ON u.id=gr.created_by WHERE gr.survey_id=? ORDER BY gr.id DESC",r.id);
   return (
     <Shell active="/encuestas">
       <div className="eyebrow">Caso #{r.id}</div>
@@ -94,6 +96,8 @@ export default async function Page({ params }) {
           <p className="muted">Sin correcciones humanas.</p>
         )}
       </div>
+      {["admin", "verificador"].includes(user.role) && <RecoveryForm record={r} />}
+      {recoveries.length>0&&<div className="card" style={{marginTop:18}}><h3>Historial de recuperación</h3>{recoveries.map(item=><div className="recovery-entry" key={item.id}><div><b>{item.contact_channel}</b> · {item.user_name}<p>{item.contact_summary}</p>{item.commitment&&<small><b>Compromiso:</b> {item.commitment}</small>}</div><div><span className="badge">{item.status}</span>{item.satisfaction_after&&<small>Satisfacción posterior: {item.satisfaction_after}/5</small>}<small>{new Date(item.created_at).toLocaleString("es-GT")}</small></div></div>)}</div>}
       {["admin", "verificador"].includes(user.role) && <DeleteSurvey id={r.id} role={user.role} request={deletionRequest || null} />}
     </Shell>
   );

@@ -3,6 +3,7 @@ import {useEffect,useState} from "react";
 import Link from "next/link";
 import LogoutButton from "./LogoutButton";
 import TechnicalSupport from "./TechnicalSupport";
+import ExperienceTools from "./ExperienceTools";
 
 export default function AppChrome({children,nav,active,unread,user}){
   const [collapsed,setCollapsed]=useState(false);
@@ -32,9 +33,9 @@ export default function AppChrome({children,nav,active,unread,user}){
     <main className="main">
       <header className="topbar">
         <div className="topbar-start"><button className="menu-toggle" onClick={toggle} aria-label={collapsed?"Mostrar menú":"Ocultar menú"} aria-expanded={!collapsed}><span></span><span></span><span></span></button><div><b>Gestión de encuestas</b><div className="muted topbar-caption">Guardado automático</div></div></div>
-        <div className="topbar-user"><div className="topbar-user-data"><b>{user?.name}</b><div className="muted topbar-caption">{user?.role==="admin"?"Administrador":"Verificador"}</div></div><TechnicalSupport user={user}/><LogoutButton/></div>
+        <div className="topbar-user"><ExperienceTools/><div className="topbar-user-data"><b>{user?.name}</b><div className="muted topbar-caption">{user?.role==="admin"?"Administrador":"Verificador"}</div></div><TechnicalSupport user={user}/><LogoutButton/></div>
       </header>
-      <section className="content">{children}</section>
+      <section className="content" id="main-content" tabIndex="-1">{children}</section>
     </main>
   </div>;
 }

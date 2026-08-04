@@ -9,6 +9,7 @@ const base = [
   ["/reportes", "▥", "Reportes"],
   ["/carga", "⇧", "Escanear o cargar"],
   ["/alertas", "!", "Alertas"],
+  ["/acciones", "◎", "Planes de acción"],
   ["/areas", "⌘", "Áreas"],
   ["/usuarios", "♙", "Usuarios"],
   ["/auditoria", "◉", "Auditoría"],

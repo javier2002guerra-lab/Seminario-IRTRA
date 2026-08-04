@@ -8,6 +8,8 @@ async function login(page) {
   );
   await page.getByRole("button", { name: "Ingresar al sistema" }).click();
   await expect(page).toHaveURL("https://localhost:3443/");
+  const guide = page.getByRole("button", { name: "Comenzar" });
+  if (await guide.isVisible().catch(() => false)) await guide.click();
 }
 test("protege la aplicación y permite navegar al superusuario", async ({
   page,
@@ -16,17 +18,17 @@ test("protege la aplicación y permite navegar al superusuario", async ({
   await expect(page).toHaveURL(/\/login$/);
   await login(page);
   await expect(
-    page.getByRole("heading", { name: "Resumen ejecutivo" }),
+    page.getByRole("heading", { name: "Centro ejecutivo de experiencia" }),
   ).toBeVisible();
-  await page.getByRole("link", { name: /Carga documental/ }).click();
+  await page.getByRole("link", { name: /Escanear o cargar/ }).click();
   await expect(
-    page.getByRole("heading", { name: "Carga de encuestas" }),
+    page.getByRole("heading", { name: "Escanear o cargar encuestas" }),
   ).toBeVisible();
   await page.getByRole("link", { name: /Usuarios/ }).click();
   await expect(
-    page.getByRole("heading", { name: "Usuarios y roles" }),
+    page.getByRole("heading", { name: "Usuarios" }),
   ).toBeVisible();
-  await page.getByRole("link", { name: /Áreas y responsables/ }).click();
+  await page.getByRole("link", { name: /Áreas/ }).click();
   await expect(
     page.getByRole("heading", { name: "Áreas y responsables" }),
   ).toBeVisible();
@@ -60,8 +62,8 @@ test("edita, confirma, reabre y elimina una encuesta con auditoría", async ({
         general: { visitor_name: "Persona corregida" },
         numbered,
         ratings: [{ service: "Calidad de comida", rating: "Bueno" }],
-        restaurant: "La Hacienda",
-        hotel: "San Martín",
+        restauranteId: "LA_HACIENDA",
+        hotelId: "SAN_MARTIN",
         reason: "Corrección humana de prueba",
       },
     });
@@ -71,8 +73,8 @@ test("edita, confirma, reabre y elimina una encuesta con auditoría", async ({
       id,
     );
     expect(saved).toMatchObject({
-      restaurant: "La Hacienda",
-      hotel: "San Martín",
+      restaurant: "LA HACIENDA",
+      hotel: "SAN MARTIN",
       validation_status: "En revisión",
       needs_review: 1,
     });
@@ -94,22 +96,29 @@ test("edita, confirma, reabre y elimina una encuesta con auditoría", async ({
       data: { action: "reopen", reason: "Se detectó una corrección adicional" },
     });
     expect(r.status()).toBe(200);
-    r = await page.request.delete(`/api/surveys/${id}`, {
+    r = await page.request.post(`/api/surveys/${id}/deletion`, {
       headers: { origin: "https://localhost:3443" },
-      data: { reason: "Eliminar registro generado por prueba" },
+      data: { action: "request", reason: "Eliminar registro generado por prueba" },
+    });
+    expect(r.status()).toBe(200);
+    r = await page.request.post(`/api/surveys/${id}/deletion`, {
+      headers: { origin: "https://localhost:3443" },
+      data: { action: "approve", reason: "Solicitud de prueba aprobada" },
     });
     expect(r.status()).toBe(200);
     expect(await get("SELECT id FROM surveys WHERE id=?", id)).toBeUndefined();
     expect(
       (
         await get(
-          "SELECT count(*)::int n FROM audit_log WHERE entity_id=? AND action='SURVEY_DELETE'",
+          "SELECT count(*)::int n FROM audit_log WHERE entity_id=? AND action='DELETION_APPROVE'",
           String(id),
         )
       ).n,
     ).toBe(1);
   } finally {
     if (await get("SELECT id FROM surveys WHERE id=?", id)) {
+      await run("DELETE FROM deletion_requests WHERE survey_id=?", id);
+      await run("DELETE FROM ai_evaluations WHERE survey_id=?", id);
       await run("DELETE FROM service_ratings WHERE survey_id=?", id);
       await run("DELETE FROM corrections WHERE survey_id=?", id);
       await run("DELETE FROM surveys WHERE id=?", id);
@@ -179,11 +188,9 @@ test("muestra la boleta digital con el formato de la hoja física", async ({
     );
     await login(page);
     await page.goto(`/encuestas/${id}`);
-    await expect(
-      page.getByRole("heading", { name: "Boleta digitalizada" }),
-    ).toBeVisible();
+    await page.getByRole("button", { name: "Ver campos editables" }).click();
     await expect(page.getByText("Estimado visitante")).toBeVisible();
-    await expect(page.getByText("Visitante de prueba")).toBeVisible();
+    await expect(page.locator('input[name="visitor_name"]')).toHaveValue("Visitante de prueba");
     await expect(
       page.getByRole("columnheader", { name: "Excelente" }),
     ).toBeVisible();
@@ -194,4 +201,14 @@ test("muestra la boleta digital con el formato de la hoja física", async ({
     await run("DELETE FROM service_ratings WHERE survey_id=?", id);
     await run("DELETE FROM surveys WHERE id=?", id);
   }
+});
+test("abre el centro ejecutivo, planes de acción e informe gerencial", async ({page})=>{
+  await login(page);
+  await expect(page.getByText("Satisfacción general",{exact:true})).toBeVisible();
+  await page.getByRole("link",{name:/Planes de acción/}).click();
+  await expect(page.getByRole("heading",{name:"Planes de acción"})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Crear plan de acción"})).toBeVisible();
+  const report=await page.request.get("/reportes/ejecutivo");
+  expect(report.status()).toBe(200);
+  expect(await report.text()).toContain("Informe ejecutivo de experiencia");
 });
