@@ -36,7 +36,7 @@ jobs:
       - name: Instalar dependencias
         run: |
           npm ci
-          python -m pip install -r excel-deps.lock
+          node scripts/install-python-deps.mjs
       - name: Configurar entorno QA sintético
         run: |
           mkdir -p .qa/uploads
@@ -70,5 +70,7 @@ jobs:
           HTTPS_CERT_PATH="$PWD/.qa/localhost.pem"
           UPLOAD_DIR="$PWD/.qa/uploads"
           ENV
+      - name: Migrar base de datos
+        run: node --env-file=.env.qa.local scripts/migrate.mjs
       - name: Pruebas unitarias e integración
         run: node scripts/qa.mjs test
