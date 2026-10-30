@@ -46,7 +46,7 @@ Consulte [diagnóstico](docs/DIAGNOSTICO.md), [manual por rol](docs/MANUAL.md) y
 
 Esta entrega incorpora **dos aportes nuevos** al Proyecto de Graduación, integrados y demostrables.
 
-- **Versión entregada:** etiqueta [`seminario-v1`](https://github.com/javier2002guerra-lab/Seminario-IRTRA/releases/tag/seminario-v1) en la rama `main`.
+- **Versión entregada:** etiqueta [`seminario-v1.1`](https://github.com/javier2002guerra-lab/Seminario-IRTRA/releases/tag/seminario-v1.1) en la rama `main`.
 - **Autor:** Javier Guerra (equipo de una persona).
 - **Integración continua:** [.github/workflows/ci.yml](.github/workflows/ci.yml) ejecuta las pruebas unitarias e integración (incluidas las de ambos aportes) contra PostgreSQL efímero en cada push.
 - **Variables de entorno de ejemplo, sin secretos:** [.env.example](.env.example).
