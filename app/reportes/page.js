@@ -2,9 +2,11 @@ import Shell from "@/components/Shell";
 import { reportRange, reportStatistics } from "@/lib/reports";
 import "@/app/reports.css";
 import AutoRefresh from "./auto-refresh";
+import { currentUser } from "@/lib/auth";
+import { surveyScope } from "@/lib/scope";
 export const dynamic = "force-dynamic";
 export default async function ReportsPage({searchParams}) {
-  const range=reportRange(await searchParams),data=await reportStatistics(range);
+  const user=await currentUser(),range=reportRange(await searchParams),data=await reportStatistics(range,surveyScope(user,"s"));
   const metrics=[["Encuestas",data.summary.total],["Felicitaciones",data.summary.compliments],["Quejas",data.summary.complaints],["Sugerencias",data.summary.suggestions],["Pendientes de revisión",data.summary.pending_review],["Resueltas o cerradas",data.summary.resolved]];
   return <Shell active="/reportes"><div className="eyebrow">Estadísticas en tiempo real</div><h1 className="title">Reportes</h1><p className="subtitle">Actualizado {new Date(data.generatedAt).toLocaleString("es-GT")}.</p><AutoRefresh/>
     <form className="toolbar card"><label>Desde <input className="input" type="date" name="from" defaultValue={range.from}/></label><label>Hasta <input className="input" type="date" name="to" defaultValue={range.to}/></label><button className="btn">Actualizar</button><a className="btn secondary" href={`/api/reports/export?from=${range.from}&to=${range.to}`}>Descargar Excel</a><a className="btn secondary" href={`/reportes/ejecutivo?from=${range.from}&to=${range.to}`} target="_blank">Informe ejecutivo PDF</a></form>

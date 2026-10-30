@@ -1,0 +1,34 @@
+%% Secuencia del flujo crítico: confirmación de una encuesta con los dos aportes.
+%% Muestra la invalidación de caché (Aporte 1) y la actualización en vivo (Aporte 2).
+%% Fuente editable. Render: https://mermaid.live
+sequenceDiagram
+  actor V as Verificador (pestaña A)
+  participant UI as Navegador / LiveUpdates
+  participant API as POST /api/surveys/:id/validation
+  participant DB as PostgreSQL
+  participant Live as lib/live.js
+  participant Cache as lib/cache.js
+  participant Bus as lib/events.js
+  participant SSE as app/api/stream
+
+  Note over UI,SSE: Al abrir la app, LiveUpdates mantiene una conexión SSE viva.
+  UI->>SSE: GET /api/stream (EventSource)
+  SSE-->>UI: event: ready
+
+  V->>API: Confirmar encuesta (action=confirm, reason)
+  API->>DB: UPDATE surveys SET validation_status='Confirmada' ...
+  DB-->>API: ok
+  API->>Live: notifySurveyChange("survey.confirmed", {id})
+  Live->>Cache: invalidate("executive")  %% Aporte 1: coherencia
+  Live->>Bus: publish("survey.confirmed")  %% Aporte 2: tiempo real
+  Bus-->>SSE: evento
+  SSE-->>UI: event: survey.confirmed
+  API-->>V: 200 OK
+
+  UI->>UI: muestra aviso y router.refresh()
+  UI->>API: (re)render del tablero → executiveData()
+  API->>Cache: wrap("executive", clave)
+  Note right of Cache: namespace invalidado → MISS
+  Cache->>DB: 13 agregaciones (recalcula)
+  DB-->>Cache: resultados frescos
+  Cache-->>UI: datos coherentes y ya cacheados (siguientes = HIT)

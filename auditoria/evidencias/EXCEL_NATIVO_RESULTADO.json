@@ -1,0 +1,44 @@
+{
+  "readOnly": true,
+  "macrosDisabled": true,
+  "formulaErrors": [],
+  "checks": [
+    {
+      "sheet": "Preguntas directas",
+      "cell": "E4",
+      "pass": true,
+      "actual": 1,
+      "expected": 1
+    },
+    {
+      "sheet": "Comentarios Negativos en Rest",
+      "cell": "S3",
+      "pass": true,
+      "actual": 1,
+      "expected": 1
+    },
+    {
+      "sheet": "Comentarios Negativos en Hotele",
+      "cell": "R4",
+      "pass": true,
+      "actual": 1,
+      "expected": 1
+    },
+    {
+      "sheet": "QUEJAS ACUMULADAS POR AREA",
+      "cell": "G4",
+      "pass": true,
+      "actual": 1,
+      "expected": 1
+    },
+    {
+      "sheet": "sugerencias mas Frecuentes",
+      "cell": "B22",
+      "pass": true,
+      "actual": 2,
+      "expected": 2
+    }
+  ],
+  "excelVersion": "16.0",
+  "workbookSha256": "b698811900f9e66f22f894f7cd49279ff5935097c92ce23177c7005cc17a1983"
+}

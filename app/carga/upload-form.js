@@ -7,8 +7,9 @@ export default function UploadForm() {
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState("");
   const timer = useRef(null);
+  const [ready, setReady] = useState(false);
 
-  useEffect(() => () => clearInterval(timer.current), []);
+  useEffect(() => { setReady(true); return () => clearInterval(timer.current); }, []);
 
   async function upload(e) {
     e.preventDefault();
@@ -49,7 +50,7 @@ export default function UploadForm() {
   }
 
   return (
-    <form className="card" onSubmit={upload}>
+    <form className="card" method="post" action="/api/surveys" encType="multipart/form-data" onSubmit={upload}>
       <div className="drop">
         <div style={{ fontSize: 34 }}>⇧</div>
         <h3>Selecciona tus documentos</h3>
@@ -57,7 +58,7 @@ export default function UploadForm() {
         <input name="files" type="file" accept=".pdf,.jpg,.jpeg,.png" multiple required />
       </div>
       <div className="toolbar" style={{ marginTop: 18 }}>
-        <button className="btn" disabled={busy}>{busy ? "Validando y procesando…" : "Procesar encuestas"}</button>
+        <button className="btn" disabled={!ready || busy}>{busy ? "Validando y procesando…" : "Procesar encuestas"}</button>
         <span className="muted">Se valida firma real, MIME, tamaño y duplicados.</span>
       </div>
       {(busy || progress > 0) && (

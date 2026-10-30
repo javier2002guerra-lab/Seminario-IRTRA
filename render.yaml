@@ -2,13 +2,14 @@ services:
   - type: web
     name: irtra-encuestas
     runtime: node
-    plan: free
+    plan: 1c-2g
     region: oregon
     branch: main
     buildCommand: npm ci && npm run build
     startCommand: npm run db:migrate && npm start
     healthCheckPath: /api/health
-    autoDeployTrigger: commit
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 120
     domains:
       - irtraencuestas.org
     envVars:
@@ -34,14 +35,22 @@ services:
         generateValue: true
       - key: CSRF_SECRET
         generateValue: true
+      - key: MFA_ENCRYPTION_KEY
+        generateValue: true
       - key: DATABASE_URL
         fromDatabase:
           name: irtra-encuestas-db
-          property: connectionString
-      - key: PGSSL
-        value: "false"
+          property: connectionPoolString
+      - key: PGSSL_MODE
+        value: require
       - key: UPLOAD_DIR
         value: /tmp/irtra-uploads
+      - key: FILE_SCAN_MODE
+        value: clamav
+      - key: CLAMAV_HOST
+        sync: false
+      - key: CLAMAV_PORT
+        value: "3310"
       - key: SCAN_WATCH_ENABLED
         value: "false"
       - key: SUPERUSER_EMAIL
@@ -50,6 +59,12 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+      - key: EXTERNAL_AI_ENABLED
+        value: "false"
+      - key: EXTERNAL_AI_PII_APPROVED
+        value: "false"
+      - key: EXTERNAL_SUPPORT_AI_ENABLED
+        value: "false"
       - key: OPENAI_MODEL
         value: gpt-5.5
       - key: OPENAI_SUPPORT_MODEL
@@ -83,9 +98,12 @@ services:
 
 databases:
   - name: irtra-encuestas-db
-    plan: free
+    plan: 1c-2g
     region: oregon
     databaseName: irtra_encuestas
     user: irtra
     postgresMajorVersion: "17"
+    diskSizeGB: 100
+    storageAutoscalingEnabled: true
+    connectionPool: pgbouncer
     ipAllowList: []

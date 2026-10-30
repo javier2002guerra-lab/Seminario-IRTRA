@@ -1,4 +1,4 @@
-import io, json, os, re, shutil, sys, unicodedata, zipfile
+import hashlib, io, json, os, re, shutil, sys, unicodedata, zipfile
 import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from datetime import datetime
@@ -15,7 +15,41 @@ SERVICE_COLUMNS = {
  "servicio club los corozos":"BD", "servicio en tiendas de conveniencia":"BJ",
  "servicio en personal de eventos":"BP", "servicio en restaurante":"BV", "personal de seguridad":"CB",
 }
-DEPARTMENTS = {"habitaciones":"Cuartos","restaurantes":"A&B","seguridad":"Seguridad","mantenimiento":"Mantenimiento","eventos":"Eventos","tecnologia":"Informatica","sin especificar":"Administracion"}
+SERVICE_ALIASES = {
+ "cortesia del personal":"cortesia del personal",
+ "prontitud en chequeo de ingreso y salida":"prontitud en chequeo de ingreso y salida",
+ "prontitud en chequeo de ingreso salida":"prontitud en chequeo de ingreso y salida",
+ "prontitud check in y check out":"prontitud en chequeo de ingreso y salida",
+ "limpieza de habitaciones":"limpieza de habitaciones",
+ "limpieza de sanitarios":"limpieza de sanitarios",
+ "mantenimiento de instalaciones":"mantenimiento de instalaciones",
+ "jardines":"jardines",
+ "servicio de maleteros":"servicio de maleteros",
+ "calidad de comida":"calidad de comida",
+ "prontitud en revision de inventarios":"prontitud en revision de inventarios",
+ "prontitud de inventarios":"prontitud en revision de inventarios",
+ "servicio club los corozos":"servicio club los corozos",
+ "servicio los corozos":"servicio club los corozos",
+ "servicio en tiendas de conveniencia":"servicio en tiendas de conveniencia",
+ "servicio en personal de eventos":"servicio en personal de eventos",
+ "servicio de personal de eventos":"servicio en personal de eventos",
+ "servicio en restaurante":"servicio en restaurante",
+ "servicio en restaurantes":"servicio en restaurante",
+ "personal de seguridad":"personal de seguridad",
+}
+HOTEL_RELEVANT_SERVICES = {
+ "cortesia del personal", "prontitud en chequeo de ingreso y salida",
+ "limpieza de habitaciones", "limpieza de sanitarios",
+ "mantenimiento de instalaciones", "jardines", "servicio de maleteros",
+ "prontitud en revision de inventarios", "personal de seguridad",
+}
+DEPARTMENTS = {
+ "habitaciones":"Cuartos", "recepcion":"Cuartos", "restaurantes":"A&B",
+ "restaurante":"A&B", "seguridad":"Seguridad", "mantenimiento":"Mantenimiento",
+ "eventos":"Eventos", "tecnologia":"Informatica", "informatica":"Informatica",
+ "club los corozos":"Corozos", "corozos":"Corozos",
+ "sin especificar":"Administracion", "administracion":"Administracion",
+}
 
 def norm(value):
     value=unicodedata.normalize("NFKD",str(value or "")).encode("ascii","ignore").decode().lower()
@@ -25,14 +59,48 @@ def safe_excel_text(value):
     value=str(value or "")
     return f"'{value}" if value.startswith(("=","+","-","@")) else value
 
+def canonical_service(value):
+    value=norm(value)
+    if value in SERVICE_ALIASES:return SERVICE_ALIASES[value]
+    # La IA puede conservar aclaraciones impresas entre paréntesis.
+    candidates=sorted(SERVICE_ALIASES,key=len,reverse=True)
+    return next((SERVICE_ALIASES[key] for key in candidates if value.startswith(f"{key} ")),None)
+
+def canonical_restaurant(value):
+    value=norm(value)
+    if "hacienda" in value:return "la hacienda"
+    if "arekas" in value or "arecas" in value:return "arekas"
+    if "kapa hapa" in value or "kapahapa" in value:return "kapahapa"
+    if "corozos" in value:return "corozos"
+    return None
+
+def canonical_hotel(value):
+    value=norm(value)
+    for key in ("san martin","palajunoj","santa cruz","rancheria"):
+        if key in value:return key
+    return None
+
+def is_club_record(row):
+    source=" ".join([str(row.get("origin_place") or ""),*[str(value) for value in (row.get("areas") or [])]])
+    source=norm(source)
+    return any(value in source for value in ("golfito","gimnasio","spa","boliche","corozos","club"))
+
+def department_for(row):
+    for area in row.get("areas") or []:
+        mapped=DEPARTMENTS.get(norm(area))
+        if mapped:return mapped
+    return "Administracion"
+
 def month_of(row):
     raw=str(row.get("general",{}).get("visit_date") or row.get("created_at") or "")
-    for fmt in ("%Y-%m-%d","%d/%m/%Y","%d-%m-%Y","%d %B %Y"):
+    for fmt in ("%Y-%m-%d","%Y/%m/%d","%d/%m/%Y","%d-%m-%Y","%d/%m/%y","%d-%m-%y"):
         try:return datetime.strptime(raw[:10] if fmt=="%Y-%m-%d" else raw,fmt).month
         except ValueError:pass
     for name,month in MONTHS.items():
         if name in norm(raw): return month
-    return datetime.fromisoformat(str(row.get("created_at")).replace("Z","+00:00")).month
+    created=str(row.get("created_at") or "").replace("Z","+00:00")
+    if not created:raise ValueError("La encuesta no contiene una fecha utilizable.")
+    return datetime.fromisoformat(created).month
 
 def month_rows(ws):
     found={}
@@ -44,14 +112,22 @@ def month_rows(ws):
 
 def tri(value):
     value=norm(value)
-    if value.startswith("si") or value in {"x si","afiliado"}: return "si"
-    if value.startswith("no") or value in {"x no","no afiliado"}: return "no"
+    if value in {"", "sin dato", "sin respuesta", "sin especificar", "no aplica", "no se", "no sabe", "si no", "ilegible"}: return "sin"
+    if value=="si" or value.startswith("si ") or value in {"x si","afiliado"}: return "si"
+    if value=="no" or value.startswith("no ") or value in {"x no","no afiliado"}: return "no"
     return "sin"
 
 def setv(ws,cell,value): ws[cell]=int(value or 0)
 def clear_and_write(ws,label_col,count_col,rows,items):
     for row in rows: ws[f"{label_col}{row}"]=None; ws[f"{count_col}{row}"]=None
     for row,(label,count) in zip(rows,items): ws[f"{label_col}{row}"]=label; ws[f"{count_col}{row}"]=count
+
+def write_grid(ws,pairs,start,end,items):
+    positions=[(label,count,row) for label,count in pairs for row in range(start,end+1)]
+    for label,count,row in positions:
+        ws[f"{label}{row}"]=None; ws[f"{count}{row}"]=None
+    for (label,count,row),(text,total) in zip(positions,items):
+        ws[f"{label}{row}"]=text; ws[f"{count}{row}"]=total
 
 def clear_historical_data(workbook):
     """Remove values bundled in the reporting template without touching layout.
@@ -108,41 +184,65 @@ def write_current_complaints(workbook,rows):
         if row.get("category") not in ("Queja","Mixta"): continue
         topic=safe_excel_text((row.get("primary_topic") or "Sin tema especificado").strip())
         area=" ".join(norm(value) for value in (row.get("areas") or []))
-        key=next((name for name,terms in {
+        keys={name for name,terms in {
             "hotel":("habitacion","hotel","cuarto"),"restaurant":("restaurante","alimento"),
             "snack":("snack","punto de venta"),"club":("club","corozos"),
-            "reception":("recepcion","reservacion")}.items() if any(term in area for term in terms)),None)
-        if key: counters[key][topic]+=1
+            "reception":("recepcion","reservacion")}.items() if any(term in area for term in terms)}
+        if canonical_restaurant(row.get("restaurant")):keys.add("restaurant")
+        if canonical_hotel(row.get("hotel")):keys.add("hotel")
+        if is_club_record(row):keys.add("club")
+        for key in keys:counters[key][topic]+=1
     sheet=workbook["QUEJAS ACUMULADAS POR AREA"]
     for key,(label_col,count_col,start,end) in groups.items():
         for row_number,(topic,count) in zip(range(start,end+1),counters[key].most_common(end-start+1)):
             sheet.cell(row_number,label_col).value=topic
-            sheet.cell(row_number,count_col).value=f"={count}"
+            sheet.cell(row_number,count_col).value=count
+
+def negative_texts(row):
+    values=[str(value).strip() for value in (row.get("negative_comments") or []) if str(value).strip()]
+    if not values and row.get("primary_topic"):values=[str(row["primary_topic"]).strip()]
+    return [safe_excel_text(value) for value in dict.fromkeys(values)]
+
+def write_negative_comment_sheets(workbook,rows):
+    restaurants=defaultdict(Counter); hotels=defaultdict(Counter); club=Counter()
+    for row in rows:
+        if row.get("category") not in ("Queja","Mixta"):continue
+        texts=negative_texts(row)
+        restaurant=canonical_restaurant(row.get("restaurant"))
+        hotel=canonical_hotel(row.get("hotel"))
+        for text in texts:
+            if restaurant:restaurants[restaurant][text]+=1
+            if hotel:hotels[hotel][text]+=1
+            if is_club_record(row):club[text]+=1
+    restaurant_sheet=workbook["Comentarios Negativos en Rest"]
+    restaurant_layout={
+        "la hacienda":("B","C",3,13), "arekas":("F","G",3,13),
+        "kapahapa":("J","K",3,13), "corozos":("N","O",3,13),
+    }
+    restaurant_total=Counter()
+    for venue,(label,count,start,end) in restaurant_layout.items():
+        clear_and_write(restaurant_sheet,label,count,range(start,end+1),restaurants[venue].most_common(end-start+1))
+        restaurant_total.update(restaurants[venue])
+    # Fill the source totals in the same order used by the summary formulas.
+    clear_and_write(restaurant_sheet,"R","S",range(3,14),restaurant_total.most_common(11))
+    hotel_sheet=workbook["Comentarios Negativos en Hotele"]
+    hotel_layout={
+        "san martin":("A","B",4,30), "palajunoj":("E","F",4,32),
+        "santa cruz":("I","J",4,30), "rancheria":("M","N",4,34),
+    }
+    hotel_total=Counter()
+    for venue,(label,count,start,end) in hotel_layout.items():
+        clear_and_write(hotel_sheet,label,count,range(start,end+1),hotels[venue].most_common(end-start+1))
+        hotel_total.update(hotels[venue])
+    clear_and_write(hotel_sheet,"Q","R",range(4,37),hotel_total.most_common(33))
+    clear_and_write(workbook["Comentarios Negativos en Corozo"],"B","C",range(4,13),club.most_common(9))
 
 def save_with_native_excel(template, workbook, output, original_values):
     """Use openpyxl only to calculate changed cells, then write them with Excel.
     This preserves the original XLSM package, including macros, charts and
     conditional-format extensions that openpyxl cannot round-trip.
     """
-    # Some clean templates store their input placeholders as formulas and list
-    # them in calcChain.xml. Keep those cells as formulas when replacing their
-    # values; removing the formula would leave a dangling calc-chain entry and
-    # Excel would report the exported XLSM as damaged.
-    for (sheet_name,row,column),before in original_values.items():
-        if not (isinstance(before,str) and before.startswith("=")):
-            continue
-        cell=workbook[sheet_name].cell(row,column)
-        value=cell.value
-        if isinstance(value,str) and value.startswith("="):
-            continue
-        if value is None:
-            cell.value="=0"
-        elif isinstance(value,bool):
-            cell.value="=TRUE()" if value else "=FALSE()"
-        elif isinstance(value,(int,float)):
-            cell.value=f"={value}"
-        else:
-            cell.value=f'="{str(value).replace(chr(34), chr(34)*2)}"'
+    restore_structural_formulas(workbook,original_values)
     current_values={(sheet.title,cell.row,cell.column):cell.value for sheet in workbook.worksheets for row in sheet.iter_rows() for cell in row if cell.value is not None}
     changes=[]
     for key in original_values.keys() | current_values.keys():
@@ -152,6 +252,7 @@ def save_with_native_excel(template, workbook, output, original_values):
     # ni ejecuta las macros. Excel nativo queda como compatibilidad explícita.
     if sys.platform != "win32" or os.getenv("XLSM_USE_NATIVE_EXCEL") != "true":
         patch_xlsm(template,output,changes)
+        validate_generated_xlsm(template,output)
         return
     shutil.copy2(template,output)
     try:
@@ -162,10 +263,55 @@ def save_with_native_excel(template, workbook, output, original_values):
         book=excel.Workbooks.Open(str(Path(output).resolve()),UpdateLinks=0,ReadOnly=False)
         for sheet,row,col,value in changes: book.Worksheets(sheet).Cells(row,col).Value=value
         excel.CalculateFullRebuild(); book.Save(); book.Close(SaveChanges=True); excel.Quit()
+        validate_generated_xlsm(template,output)
     except Exception:
         try: excel.Quit()
         except Exception: pass
         raise RuntimeError("Microsoft Excel no pudo conservar la plantilla durante la exportación.")
+
+
+def restore_structural_formulas(workbook,original_values):
+    """Keep institutional calculations and synchronize labels with their sources.
+
+    Numeric-only formulas are historical observations, which must be replaced.
+    All formulas referencing cells keep their original expression, with only a
+    zero-denominator guard where applicable.
+    """
+    for (sheet,row,col),formula in original_values.items():
+        if not isinstance(formula,str) or not formula.startswith("="):continue
+        if re.fullmatch(r"=\+?\d+(?:[+\-]\d+)*",formula.replace(" ","")):continue
+        workbook[sheet].cell(row,col).value=(f"=IFERROR({formula[1:]},0)" if "/" in formula and not norm(formula).startswith("iferror") else formula)
+    # Summary rows have fixed formula references in the approved template.
+    # Their labels must follow the referenced source rows, not a separate sort.
+    layouts={
+        "QUEJAS MAS FRECUENTES":[(2,3,5,13)],
+        "QUEJAS ACUMULADAS POR AREA":[(1,3,4,36),(5,7,4,14),(9,11,4,9),(13,15,4,12),(18,20,4,13)],
+    }
+    for sheet_name,groups in layouts.items():
+        for label_col,count_col,start,end in groups:
+            for row in range(start,end+1):
+                formula=workbook[sheet_name].cell(row,count_col).value
+                match=re.fullmatch(r"='([^']+)'!\$?([A-Z]+)\$?(\d+)",str(formula or ""))
+                if match:
+                    source,column,source_row=match.groups()
+                    source_label=workbook[source].cell(int(source_row),column_index_from_string(column)-1).value
+                    workbook[sheet_name].cell(row,label_col).value=source_label
+
+def parse_preserving_namespaces(content):
+    # mc:Ignorable and Choice@Requires contain prefix names as text. ElementTree
+    # otherwise drops their declarations, producing XML Excel refuses to open.
+    namespaces=dict(item for _,item in ET.iterparse(io.BytesIO(content),events=("start-ns",)))
+    for prefix,uri in namespaces.items():
+        if prefix != "xml":ET.register_namespace(prefix,uri)
+    root=ET.fromstring(content)
+    used_uris=set()
+    for node in root.iter():
+        for name in (node.tag,*node.attrib):
+            if name.startswith("{"):used_uris.add(name[1:].split("}",1)[0])
+    for prefix,uri in namespaces.items():
+        if prefix and uri not in used_uris:root.set(f"xmlns:{prefix}",uri)
+    return root
+
 
 def patch_xlsm(template,output,changes):
     ns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
@@ -184,18 +330,26 @@ def patch_xlsm(template,output,changes):
     ET.register_namespace("",ns)
     with zipfile.ZipFile(template,"r") as source, zipfile.ZipFile(output,"w") as target:
         for info in source.infolist():
+            if info.filename=="xl/calcChain.xml":continue
             content=source.read(info.filename)
+            if info.filename=="xl/_rels/workbook.xml.rels":
+                root=parse_preserving_namespaces(content)
+                for node in list(root):
+                    if node.attrib.get("Type","").endswith("/calcChain"):root.remove(node)
+                content=ET.tostring(root,encoding="utf-8",xml_declaration=True)
+            elif info.filename=="[Content_Types].xml":
+                root=parse_preserving_namespaces(content)
+                for node in list(root):
+                    if node.attrib.get("PartName")=="/xl/calcChain.xml":root.remove(node)
+                content=ET.tostring(root,encoding="utf-8",xml_declaration=True)
+            elif info.filename=="xl/workbook.xml":
+                root=parse_preserving_namespaces(content)
+                calc=root.find(f"{{{ns}}}calcPr")
+                if calc is None:calc=ET.SubElement(root,f"{{{ns}}}calcPr")
+                calc.set("calcMode","auto"); calc.set("fullCalcOnLoad","1"); calc.set("forceFullCalc","1")
+                content=ET.tostring(root,encoding="utf-8",xml_declaration=True)
             if info.filename in grouped:
-                namespaces=dict(item for _,item in ET.iterparse(io.BytesIO(content),events=("start-ns",)))
-                for prefix,uri in namespaces.items():
-                    if prefix != "xml": ET.register_namespace(prefix,uri)
-                root=ET.fromstring(content)
-                used_uris=set()
-                for node in root.iter():
-                    for name in (node.tag,*node.attrib):
-                        if name.startswith("{"): used_uris.add(name[1:].split("}",1)[0])
-                for prefix,uri in namespaces.items():
-                    if prefix and uri not in used_uris: root.set(f"xmlns:{prefix}",uri)
+                root=parse_preserving_namespaces(content)
                 sheet_data=root.find(f"{{{ns}}}sheetData")
                 rows={int(node.attrib["r"]):node for node in sheet_data.findall(f"{{{ns}}}row")}
                 for row_number,col_number,value in grouped[info.filename]:
@@ -231,14 +385,38 @@ def patch_xlsm(template,output,changes):
                 content=ET.tostring(root,encoding="utf-8",xml_declaration=True)
             target.writestr(info,content)
 
+def validate_generated_xlsm(template,output):
+    required={"Preguntas directas","Nivel de Calidad","Sugerencia o Queja","QUEJAS ACUMULADAS POR AREA"}
+    with zipfile.ZipFile(template,"r") as source,zipfile.ZipFile(output,"r") as generated:
+        if generated.testzip() is not None:raise RuntimeError("El paquete XLSM generado está corrupto.")
+        if "xl/vbaProject.bin" not in generated.namelist():raise RuntimeError("El XLSM generado perdió sus macros.")
+        if hashlib.sha256(source.read("xl/vbaProject.bin")).digest()!=hashlib.sha256(generated.read("xl/vbaProject.bin")).digest():
+            raise RuntimeError("El proyecto VBA fue alterado durante la exportación.")
+        if "xl/calcChain.xml" in generated.namelist():raise RuntimeError("El XLSM conserva una cadena de cálculo obsoleta.")
+        for name in generated.namelist():
+            if name=="xl/workbook.xml" or (name.startswith("xl/worksheets/") and name.endswith(".xml")):
+                content=generated.read(name)
+                namespaces=dict(item for _,item in ET.iterparse(io.BytesIO(content),events=("start-ns",)))
+                for node in ET.fromstring(content).iter():
+                    for key,value in node.attrib.items():
+                        if key=="{http://schemas.openxmlformats.org/markup-compatibility/2006}Ignorable" or key=="Requires":
+                            if any(prefix not in namespaces for prefix in value.split()):raise RuntimeError(f"El XLSM perdió declaraciones de compatibilidad en {name}.")
+    generated_book=load_workbook(output,keep_vba=True,data_only=False,read_only=True)
+    try:
+        if not required.issubset(generated_book.sheetnames):raise RuntimeError("El XLSM generado no conserva todas las hojas requeridas.")
+        if generated_book.calculation.calcMode!="auto":raise RuntimeError("El XLSM generado no solicita recálculo automático.")
+    finally:
+        generated_book.close()
+
 def main(template,data_path,output):
     rows=json.loads(Path(data_path).read_text(encoding="utf-8-sig"))
     wb=load_workbook(template,keep_vba=True,data_only=False)
     original_values={(sheet.title,cell.row,cell.column):cell.value for sheet in wb.worksheets for row in sheet.iter_rows() for cell in row if cell.value is not None}
     clear_historical_data(wb)
     write_current_complaints(wb,rows)
-    monthly=defaultdict(lambda:{"affiliate":Counter(),"reason":Counter(),"recommend":Counter(),"resolved":Counter(),"collab":Counter(),"attendant":Counter(),"category":Counter(),"services":defaultdict(Counter),"dept_s":Counter(),"dept_q":Counter()})
-    suggestions=Counter(); complaints=Counter(); venue_services=defaultdict(lambda:defaultdict(lambda:defaultdict(Counter))); venue_negative=defaultdict(Counter)
+    write_negative_comment_sheets(wb,rows)
+    monthly=defaultdict(lambda:{"affiliate":Counter(),"reason":Counter(),"recommend":Counter(),"resolved":Counter(),"collab":Counter(),"attendant":Counter(),"category":Counter(),"services":defaultdict(Counter),"dept_s":Counter(),"dept_q":Counter(),"restaurant":defaultdict(lambda:defaultdict(Counter)),"hotel":defaultdict(Counter),"club":Counter(),"restaurant_negative":Counter(),"hotel_negative":Counter(),"club_negative":0})
+    suggestions=Counter(); complaints=Counter()
     for row in rows:
         m=month_of(row); d=monthly[m]; g=row.get("general",{}); n=row.get("numbered",{})
         d["affiliate"][tri(g.get("affiliate_status"))]+=1
@@ -247,17 +425,25 @@ def main(template,data_path,output):
             if any(w in reason for w in words): d["reason"][key]+=1; matched=True
         if not matched:d["reason"]["sin"]+=1
         d["recommend"][tri(n.get("item_7"))]+=1; d["resolved"][tri(n.get("item_10"))]+=1; d["collab"][tri(n.get("item_11"))]+=1
-        attendant=norm(n.get("item_12")); role=next((x for x in ["maletero","eventos","cajero","recepcion","camarera","mesero","masajista"] if x in attendant),"otro"); d["attendant"][role]+=1
+        attendant=norm(n.get("item_12")); roles={x for x in ["maletero","eventos","cajero","recepcion","camarera","mesero","masajista"] if x in attendant}
+        for role in roles or {"otro"}:d["attendant"][role]+=1
         category=row.get("category",""); topic=safe_excel_text((row.get("primary_topic") or "Sin determinar").strip())
-        departments=row.get("areas") or ["Sin especificar"]; dept=DEPARTMENTS.get(norm(departments[0]),"Administracion")
+        dept=department_for(row)
         if category in ("Sugerencia","Mixta"): d["category"]["sugerencia"]+=1; d["dept_s"][dept]+=1; suggestions[topic]+=1
         if category in ("Queja","Mixta"): d["category"]["queja"]+=1; d["dept_q"][dept]+=1; complaints[topic]+=1
-        venue=row.get("origin_place") or row.get("restaurant") or row.get("hotel") or "Sin especificar"
+        restaurant=canonical_restaurant(row.get("restaurant") or g.get("restaurant")); hotel=canonical_hotel(row.get("hotel") or g.get("hotel")); club=is_club_record(row)
         for rating in row.get("ratings",[]):
-            service=norm(rating.get("service_name")); quality=norm(rating.get("rating"));
+            service=canonical_service(rating.get("service_name")); quality=norm(rating.get("rating"));
             if quality in ("excelente","bueno","regular","malo"):
-                d["services"][service][quality]+=1; venue_services[m][norm(venue)][service][quality]+=1
-        if category in ("Queja","Mixta"): venue_negative[norm(venue)][topic]+=1
+                if service:d["services"][service][quality]+=1
+                if restaurant and service=="calidad de comida":d["restaurant"][restaurant]["food"][quality]+=1
+                if restaurant and service=="servicio en restaurante":d["restaurant"][restaurant]["service"][quality]+=1
+                if hotel and service in HOTEL_RELEVANT_SERVICES:d["hotel"][hotel][quality]+=1
+                if service=="servicio club los corozos":d["club"][quality]+=1
+        if category in ("Queja","Mixta"):
+            if restaurant:d["restaurant_negative"][restaurant]+=1
+            if hotel:d["hotel_negative"][hotel]+=1
+            if club:d["club_negative"]+=1
 
     ws=wb["Preguntas directas"]
     for m,r in month_rows(ws).items():
@@ -282,23 +468,29 @@ def main(template,data_path,output):
             r=label_rows.get(norm(dept))
             if r:
                 for m,col in zip(range(1,13),range(3,15)):ws.cell(r,col).value=monthly[m][bucket][dept]
-    clear_and_write(wb["sugerencias mas Frecuentes"],"B","C",range(6,23),suggestions.most_common(17))
+    clear_and_write(wb["sugerencias mas Frecuentes"],"B","C",range(6,22),suggestions.most_common(16))
+    write_grid(wb["OTRAS SUGERENCIAS"],[("A","B"),("D","E")],4,65,suggestions.most_common()[16:])
     clear_and_write(wb["QUEJAS MAS FRECUENTES"],"B","C",range(5,14),complaints.most_common(9))
 
     venue_sheets={"la hacienda":"Calificacion La Hacienda","arekas":"Calificacion Las Arecas","kapahapa":"Calificacion Kapa Hapa","corozos":"Calificacion Rest. Corozos"}
     for venue,sheet in venue_sheets.items():
         ws=wb[sheet]
         for m,r in month_rows(ws).items():
-            food=venue_services[m][venue]["calidad de comida"]; service=venue_services[m][venue]["servicio en restaurante"]
+            food=monthly[m]["restaurant"][venue]["food"]; service=monthly[m]["restaurant"][venue]["service"]
+            setv(ws,f"F{r}",monthly[m]["restaurant_negative"][venue])
             setv(ws,f"I{r}",food["excelente"]+food["bueno"]);setv(ws,f"J{r}",food["regular"]);setv(ws,f"K{r}",food["malo"])
             setv(ws,f"N{r}",service["excelente"]+service["bueno"]);setv(ws,f"O{r}",service["regular"]);setv(ws,f"P{r}",service["malo"])
     hotel_sheets={"san martin":"Calificacion  San Martin","palajunoj":"Calificacion  Palajunoj","santa cruz":"Calificacion  Santa Cruz","rancheria":"Calificacion Rancheria"}
     for venue,sheet in hotel_sheets.items():
         ws=wb[sheet]
         for m,r in month_rows(ws).items():
-            allq=Counter()
-            for values in venue_services[m][venue].values():allq.update(values)
+            allq=monthly[m]["hotel"][venue]
             setv(ws,f"C{r}",allq["excelente"]+allq["bueno"]);setv(ws,f"D{r}",allq["regular"]);setv(ws,f"E{r}",allq["malo"])
+            setv(ws,f"F{r}",monthly[m]["hotel_negative"][venue])
+    ws=wb["Calificacion Club Corozos"]
+    for m,r in month_rows(ws).items():
+        quality=monthly[m]["club"]
+        setv(ws,f"C{r}",quality["excelente"]+quality["bueno"]);setv(ws,f"D{r}",quality["regular"]);setv(ws,f"E{r}",quality["malo"]);setv(ws,f"F{r}",monthly[m]["club_negative"])
     wb.calculation.fullCalcOnLoad=True; wb.calculation.forceFullCalc=True; wb.calculation.calcMode="auto"
     save_with_native_excel(template,wb,output,original_values)
 

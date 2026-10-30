@@ -5,8 +5,19 @@ import next from "next";
 import { validateProductionSecurity } from "./lib/security.js";
 import { startScannerWatcher } from "./lib/scanner-watch.js";
 import { startReportScheduler } from "./lib/report-scheduler.js";
-import { closeDatabase } from "./lib/db.js";
+import { closeDatabase, validateDatabaseSecurity } from "./lib/db.js";
+import { checkMalwareScanner } from "./lib/malware-scan.js";
 validateProductionSecurity();
+
+const remoteProduction =
+  process.env.NODE_ENV === "production" &&
+  !/^(localhost|127\.0\.0\.1)$/i.test(
+    new URL(process.env.APP_BASE_URL).hostname,
+  );
+if (remoteProduction) {
+  await validateDatabaseSecurity();
+  await checkMalwareScanner();
+}
 
 const dev = process.env.NODE_ENV !== "production";
 const app = next({ dev });
@@ -19,8 +30,13 @@ const port = Number(process.env.PORT || 3443);
 const externalTls =
   process.env.EXTERNAL_TLS_TERMINATION === "true" ||
   Boolean(process.env.RENDER);
+const requestHandler = (req, res) => {
+  // Overwrite any client-supplied value with the address observed by Node.
+  req.headers["x-irtra-remote-address"] = req.socket.remoteAddress || "";
+  return handle(req, res);
+};
 const server = externalTls
-  ? http.createServer((req, res) => handle(req, res))
+  ? http.createServer(requestHandler)
   : https.createServer(
       {
         key: fs.readFileSync(
@@ -31,7 +47,7 @@ const server = externalTls
         ),
         minVersion: "TLSv1.2",
       },
-      (req, res) => handle(req, res),
+      requestHandler,
     );
 server.requestTimeout = 120000;
 server.headersTimeout = 15000;

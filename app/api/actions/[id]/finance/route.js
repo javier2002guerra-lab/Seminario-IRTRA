@@ -24,8 +24,10 @@ export async function PATCH(req, { params }) {
     );
   const actual =
     b.financial_status === "Validado"
-      ? Math.max(0, Number(b.actual_savings || 0))
+      ? Number(b.actual_savings || 0)
       : null;
+  if (actual !== null && (!Number.isFinite(actual) || actual < 0 || actual > 999999999999.99))
+    return NextResponse.json({ error: "El ahorro debe ser un importe válido y no negativo." }, { status: 400 });
   await run(
     "UPDATE action_plans SET actual_savings=?,financial_status=?,financial_note=?,financial_validated_by=?,financial_validated_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?",
     actual,

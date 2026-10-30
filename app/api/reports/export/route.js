@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { reportRange, reportStatistics } from "@/lib/reports";
+import { surveyScope } from "@/lib/scope";
 import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -14,8 +15,10 @@ export async function GET(req) {
   const user = await currentUser();
   if (!user)
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
-  const range = reportRange(Object.fromEntries(new URL(req.url).searchParams));
-  const data = await reportStatistics(range);
+  let range;
+  try { range = reportRange(Object.fromEntries(new URL(req.url).searchParams)); }
+  catch (error) { return NextResponse.json({ error: error.message }, { status: 400 }); }
+  const data = await reportStatistics(range, surveyScope(user, "s"));
   const token = crypto.randomUUID();
   const input = path.join(os.tmpdir(), `irtra-report-${token}.json`);
   const output = path.join(os.tmpdir(), `irtra-report-${token}.xlsx`);

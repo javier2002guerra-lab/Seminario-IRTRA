@@ -267,7 +267,7 @@ th {
     grid-template-columns: 1fr;
   }
 }
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .shell {
     grid-template-columns: 1fr;
   }
@@ -297,3 +297,14 @@ th {
     display: none;
   }
 }
+
+/* Aporte 2 — Indicador y avisos de tiempo real (SSE). */
+.live-wrap{display:flex;align-items:center;position:relative}
+.live-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:.35rem;background:#9aa4ad;box-shadow:0 0 0 0 rgba(0,0,0,0)}
+.live-dot.on{background:#16a34a;animation:live-pulse 2s infinite}
+.live-dot.off{background:#d97706}
+@keyframes live-pulse{0%{box-shadow:0 0 0 0 rgba(22,163,74,.5)}70%{box-shadow:0 0 0 6px rgba(22,163,74,0)}100%{box-shadow:0 0 0 0 rgba(22,163,74,0)}}
+.live-toasts{position:fixed;top:72px;right:18px;z-index:60;display:flex;flex-direction:column;gap:.4rem;pointer-events:none}
+.live-toast{background:#0f766e;color:#fff;padding:.55rem .9rem;border-radius:10px;font-size:.85rem;font-weight:600;box-shadow:0 10px 25px rgba(15,118,110,.35);animation:live-in .25s ease-out}
+@keyframes live-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@media (prefers-reduced-motion: reduce){.live-dot.on{animation:none}.live-toast{animation:none}}

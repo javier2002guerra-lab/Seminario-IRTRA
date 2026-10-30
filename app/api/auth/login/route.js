@@ -1,11 +1,15 @@
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 import { get, run, audit } from "@/lib/db";
-import { createSession, setSession } from "@/lib/auth";
+import {
+  clearSession,
+  createPendingMfaSession,
+  setPendingMfaSession,
+} from "@/lib/auth";
 import { clientIp, loginKey, accountLoginKey } from "@/lib/security";
 const DUMMY_PASSWORD_HASH =
   "$2b$12$cCTzNkMCOWqYKoTBMifPKO09iTm181Y.ai7OO5KBjGcxI6uMZrU46";
-export async function POST(req) {
+async function authenticate(req) {
   const ip = clientIp(req);
   let email, password;
   try {
@@ -67,12 +71,38 @@ export async function POST(req) {
     "UPDATE users SET session_version=session_version+1 WHERE id=? RETURNING *",
     user.id,
   );
-  await setSession(await createSession(sessionUser));
+  await clearSession();
+  await setPendingMfaSession(await createPendingMfaSession(sessionUser));
   await audit({
     userId: user.id,
-    action: "LOGIN_SUCCESS",
+    action: "PASSWORD_VERIFIED",
     ip,
-    after: { previous_sessions_closed: true },
+    after: {
+      previous_sessions_closed: true,
+      mfa_enrollment_required: !Boolean(sessionUser.mfa_enabled),
+    },
   });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    mfaRequired: true,
+    enrollmentRequired: !Boolean(sessionUser.mfa_enabled),
+  });
+}
+
+export async function POST(req) {
+  try {
+    return await authenticate(req);
+  } catch (error) {
+    console.error(
+      "[auth/login] fallo interno:",
+      error?.code || error?.name || "error",
+    );
+    return NextResponse.json(
+      {
+        error:
+          "El servicio de autenticación no está disponible temporalmente. Verifica la conexión con PostgreSQL.",
+      },
+      { status: 503 },
+    );
+  }
 }

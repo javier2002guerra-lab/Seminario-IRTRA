@@ -68,7 +68,7 @@ table {
 th {
   color: #486067;
 }
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .main::before,
   .main::after {
     inset: 78px 0 0;

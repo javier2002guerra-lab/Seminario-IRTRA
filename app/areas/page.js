@@ -52,7 +52,7 @@ export default async function Page() {
             </tbody>
           </table>
         </div>
-        {["admin","verificador"].includes(user.role) && <AreaForm />}
+        {user.role === "admin" && <AreaForm />}
       </div>
     </Shell>
   );

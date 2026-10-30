@@ -33,7 +33,10 @@ export default function TechnicalSupport({ user }) {
       const response = await fetch("/api/support", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next }),
+        body: JSON.stringify({
+          messages: next.filter((message) => !message.error),
+          page: window.location.pathname,
+        }),
       });
       const data = await response.json();
       if (!response.ok)
@@ -184,7 +187,14 @@ function AtlasAction({ plan, onCreated }) {
     const response = await fetch("/api/actions", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...plan, due_at: due }),
+        body: JSON.stringify({
+          title: plan.title,
+          description: plan.description,
+          priority: plan.priority,
+          expected_impact: plan.expected_impact,
+          area_id: plan.area_id,
+          due_at: due,
+        }),
       }),
       data = await response.json();
     if (response.ok) onCreated(data.id);
@@ -196,7 +206,7 @@ function AtlasAction({ plan, onCreated }) {
       <b>Propuesta de plan</b>
       <span>{plan.title}</span>
       <small>
-        {plan.priority} · {plan.due_days} días
+        {plan.area} · {plan.priority} · {plan.due_days} días
       </small>
       <button className="btn" onClick={create} disabled={busy}>
         {busy ? "Creando…" : "Confirmar y crear plan"}

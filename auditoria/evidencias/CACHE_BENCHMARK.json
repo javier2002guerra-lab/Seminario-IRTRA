@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-10-30T05:19:25.668Z",
+  "period": {
+    "from": "2026-01-01",
+    "to": "2026-12-31"
+  },
+  "runsPerScenario": 25,
+  "uncached": {
+    "label": "sin_cache",
+    "runs": 25,
+    "avgMs": 9.68,
+    "p95Ms": 15.26,
+    "minMs": 4.54,
+    "maxMs": 16.32
+  },
+  "cached": {
+    "label": "con_cache",
+    "runs": 25,
+    "avgMs": 0.71,
+    "p95Ms": 0.31,
+    "minMs": 0.09,
+    "maxMs": 14.11
+  },
+  "speedupAvg": 13.6,
+  "cacheStats": {
+    "hits": 24,
+    "misses": 1,
+    "sets": 1,
+    "evictions": 0,
+    "errors": 0,
+    "bumps": 1,
+    "backend": "memory",
+    "entries": 1,
+    "hitRate": 0.96,
+    "enabled": true
+  },
+  "conclusion": "Con caché, la carga promedio del tablero es ~13.6x más rápida (9.68 ms -> 0.71 ms)."
+}

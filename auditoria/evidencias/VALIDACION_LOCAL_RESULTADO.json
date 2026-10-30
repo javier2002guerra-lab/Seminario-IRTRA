@@ -1,0 +1,70 @@
+{
+  "generatedAt": "2026-10-30T04:38:21.115Z",
+  "localPresentation": true,
+  "productionReady": false,
+  "node": {
+    "tests": 75,
+    "passed": 75,
+    "failed": 0
+  },
+  "cypress": {
+    "tests": 8,
+    "passed": 8,
+    "failed": 0
+  },
+  "playwright": {
+    "tests": 12,
+    "passed": 12,
+    "failed": 0
+  },
+  "buildId": "5jiKXWtVhJLi_joXPY8S4",
+  "excelMatrix": {
+    "passed": true,
+    "synthetic_surveys": 672,
+    "months": 12,
+    "services": 14,
+    "rating_options": 4,
+    "restaurants": 4,
+    "hotels": 4,
+    "verified_cells": 1332
+  },
+  "macroAndFormulaIntegrity": {
+    "format": "xlsm",
+    "verified_cells": 58,
+    "structural_formulas": 993,
+    "macros_preserved": true
+  },
+  "nativeExcel": {
+    "formulaErrors": 0,
+    "checksPassed": true,
+    "workbookSha256": "b698811900f9e66f22f894f7cd49279ff5935097c92ce23177c7005cc17a1983"
+  },
+  "vulnerabilities": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "examples": [
+    {
+      "id": "2",
+      "original_name": "DEMO-SINTETICA-1.png",
+      "category": "Queja",
+      "validation_status": "Confirmada"
+    },
+    {
+      "id": "3",
+      "original_name": "DEMO-SINTETICA-2.png",
+      "category": "Sugerencia",
+      "validation_status": "Pendiente de revisión"
+    },
+    {
+      "id": "4",
+      "original_name": "DEMO-SINTETICA-3.png",
+      "category": "Felicitación",
+      "validation_status": "Confirmada"
+    }
+  ]
+}

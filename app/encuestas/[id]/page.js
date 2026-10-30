@@ -5,6 +5,7 @@ import ReviewForm from "./review-form";
 import FollowupForm from "./followup-form";
 import { currentUser } from "@/lib/auth";
 import { surveyScope } from "@/lib/scope";
+import { isValidId } from "@/lib/security";
 import ReviewWorkspace from "./review-workspace";
 import ValidationActions from "./validation-actions";import DeleteSurvey from "./delete-survey";
 import RecoveryForm from "./recovery-form";
@@ -14,13 +15,16 @@ export default async function Page({ params }) {
   const { id } = await params,
     user = await currentUser(),
     scope = surveyScope(user, "s");
+  if (!isValidId(id)) notFound();
   const r = await get(
     `SELECT s.* FROM surveys s WHERE s.id=? AND ${scope.where}`,
     Number(id),
     ...scope.params,
   );
   if (!r) notFound();
-  const areas = await query("SELECT * FROM areas WHERE active=1 ORDER BY name"),
+  const areas = user.role === "admin"
+      ? await query("SELECT * FROM areas WHERE active=1 ORDER BY name")
+      : await query("SELECT a.* FROM areas a JOIN user_areas ua ON ua.area_id=a.id WHERE ua.user_id=? AND a.active=1 ORDER BY a.name", user.id),
     assigned = (await query(
       "SELECT a.name FROM areas a JOIN survey_areas sa ON sa.area_id=a.id WHERE sa.survey_id=?",
       r.id,
@@ -33,9 +37,9 @@ export default async function Page({ params }) {
       "SELECT f.*,u.name user_name FROM followups f JOIN users u ON u.id=f.user_id WHERE survey_id=? ORDER BY f.id DESC",
       r.id,
     ),
-    assignees = await query(
-      "SELECT DISTINCT u.id,u.name FROM users u WHERE u.active=1 AND u.role IN ('admin','verificador') ORDER BY u.name",
-    ),
+    assignees = user.role === "admin"
+      ? await query("SELECT DISTINCT u.id,u.name FROM users u WHERE u.active=1 AND u.role IN ('admin','verificador') ORDER BY u.name")
+      : await query("SELECT DISTINCT u.id,u.name FROM users u JOIN user_areas theirs ON theirs.user_id=u.id JOIN user_areas mine ON mine.area_id=theirs.area_id WHERE mine.user_id=? AND u.active=1 ORDER BY u.name", user.id),
     ratings = await query("SELECT service_name,rating,score,negative FROM service_ratings WHERE survey_id=? ORDER BY id",r.id),
     deletionRequest = await get("SELECT d.*,u.name requester_name FROM deletion_requests d JOIN users u ON u.id=d.requested_by WHERE d.survey_id=? AND d.status='Pendiente' ORDER BY d.id DESC LIMIT 1",r.id),
     recoveries = await query("SELECT gr.*,u.name user_name FROM guest_recovery gr JOIN users u ON u.id=gr.created_by WHERE gr.survey_id=? ORDER BY gr.id DESC",r.id);
@@ -174,7 +178,7 @@ function AnalysisEvidence({ record }) {
   const evidence = data.classification_evidence || [], warnings = data.extraction_warnings || [];
   return <div className="card" style={{marginTop:18}}>
     <h3>Respaldo del análisis automático</h3>
-    <p><b>Porcentaje estimado de acierto:</b> {Math.round(record.confidence * 100)}% {record.confidence < .85 && <span className="badge review-low">Prioridad de revisión: menor a 85%</span>}</p>
+    <p><b>Confianza estimada del modelo:</b> {Math.round(record.confidence * 100)}% {record.confidence < .85 && <span className="badge review-low">Prioridad de revisión: menor a 85%</span>}</p>
     <p className="muted">Es una estimación de legibilidad y evidencia, no una garantía. La confirmación final es humana.</p>
     <h4>Evidencia para la clasificación</h4>
     {evidence.length ? <ul>{evidence.map((x,i)=><li key={i}><b>{x.source}:</b> “{x.text}”</li>)}</ul> : <p className="muted">No se registró evidencia textual; revise el original.</p>}

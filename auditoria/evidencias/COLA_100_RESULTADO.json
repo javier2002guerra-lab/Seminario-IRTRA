@@ -1,0 +1,72 @@
+{
+  "test": "Simulación local de 100 encuestas en cola",
+  "executed_at": "2026-10-30T04:24:19.225Z",
+  "result": "APROBADA",
+  "scope": {
+    "queued_surveys": 100,
+    "concurrency": 8,
+    "external_services_used": false,
+    "analyzer": "doble determinista local con datos sintéticos y verdad conocida",
+    "database": "PostgreSQL local; filas de prueba eliminadas al finalizar",
+    "ambiguous_surveys": 10,
+    "ratings_persisted": 1400
+  },
+  "queue": {
+    "duration_ms": 1187.72,
+    "throughput_surveys_per_second": 84.2,
+    "maximum_active_observed": 8,
+    "queue_wait": {
+      "p50_ms": 664.07,
+      "p95_ms": 1065.52,
+      "p99_ms": 1097.36,
+      "max_ms": 1099.24
+    },
+    "analysis": {
+      "p50_ms": 26.07,
+      "p95_ms": 41.13,
+      "p99_ms": 44.1,
+      "max_ms": 46.11
+    },
+    "persistence": {
+      "p50_ms": 49.24,
+      "p95_ms": 239.14,
+      "p99_ms": 327.51,
+      "max_ms": 341.02
+    },
+    "end_to_end_per_survey": {
+      "p50_ms": 77.35,
+      "p95_ms": 265.21,
+      "p99_ms": 366.73,
+      "max_ms": 387.13
+    },
+    "failures": 0,
+    "retries": 0
+  },
+  "data_quality": {
+    "exact_surveys": 100,
+    "survey_accuracy_percent": 100,
+    "field_comparisons": 10310,
+    "failed_field_comparisons": 0,
+    "field_accuracy_percent": 100,
+    "persisted_surveys": 100,
+    "persisted_ratings": 1400,
+    "duplicate_identifiers": 0,
+    "mismatches": []
+  },
+  "resources": {
+    "cpu_user_ms": 1000,
+    "cpu_system_ms": 344,
+    "rss_start_mb": 36.48,
+    "rss_peak_mb": 51.98
+  },
+  "limitations": [
+    "La prueba demuestra concurrencia, aislamiento, persistencia e integridad con resultados sintéticos conocidos.",
+    "No mide precisión real de lectura de imágenes, manuscritos u OCR/IA; no se enviaron datos a OpenAI.",
+    "No sustituye una prueba en staging con 100 escaneos anonimizados y etiquetados por revisores humanos."
+  ],
+  "cleanup": {
+    "removed": 100,
+    "remaining": 0
+  },
+  "finished_at": "2026-10-30T04:24:20.788Z"
+}

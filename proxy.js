@@ -5,6 +5,8 @@ import crypto from "node:crypto";
 const publicExact = new Set([
   "/login",
   "/api/auth/login",
+  "/api/auth/mfa/setup",
+  "/api/auth/mfa/verify",
   "/api/scanner/ingest",
   "/api/health",
   "/favicon.ico",
@@ -15,9 +17,11 @@ const AUDIENCE = "irtra-web";
 
 export async function proxy(req) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const developmentEval =
+    process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'";
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${developmentEval}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self'",
@@ -46,7 +50,11 @@ export async function proxy(req) {
       : 64 * 1024;
   const expectsBody =
     !["GET", "HEAD", "OPTIONS"].includes(req.method) &&
-    !["/api/auth/logout", "/api/notifications"].includes(req.nextUrl.pathname);
+    ![
+      "/api/auth/logout",
+      "/api/auth/mfa/setup",
+      "/api/notifications",
+    ].includes(req.nextUrl.pathname);
   if (
     expectsBody &&
     (!contentLengthHeader || req.headers.has("transfer-encoding"))
@@ -68,7 +76,9 @@ export async function proxy(req) {
           ? String(process.env.ALLOWED_ORIGINS || process.env.APP_BASE_URL)
               .split(",")
               .map((value) => new URL(value.trim()).origin)
-          : [req.nextUrl.origin],
+          : [req.nextUrl.origin, process.env.APP_BASE_URL]
+              .filter(Boolean)
+              .map((value) => new URL(value).origin),
       );
       if (!origin || !allowedOrigins.has(new URL(origin).origin))
         return NextResponse.json(
@@ -96,7 +106,7 @@ export async function proxy(req) {
       : "irtra_session",
   )?.value;
   try {
-    await jwtVerify(
+    const { payload } = await jwtVerify(
       token,
       new TextEncoder().encode(
         process.env.SESSION_SECRET ||
@@ -104,6 +114,22 @@ export async function proxy(req) {
       ),
       { algorithms: ["HS256"], issuer: ISSUER, audience: AUDIENCE },
     );
+    if (payload.password_change_required) {
+      const allowedForPasswordChange = new Set([
+        "/seguridad",
+        "/api/auth/password",
+        "/api/auth/logout",
+        "/api/auth/session",
+      ]);
+      if (!allowedForPasswordChange.has(req.nextUrl.pathname)) {
+        if (req.nextUrl.pathname.startsWith("/api/"))
+          return NextResponse.json(
+            { error: "Debe cambiar la contraseña inicial." },
+            { status: 403 },
+          );
+        return NextResponse.redirect(new URL("/seguridad?required=password", req.url));
+      }
+    }
     return response;
   } catch {
     if (req.nextUrl.pathname.startsWith("/api/"))

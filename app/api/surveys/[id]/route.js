@@ -2,17 +2,23 @@ import { NextResponse } from "next/server";
 import { currentUser, can } from "@/lib/auth";
 import { get, run, audit, transaction } from "@/lib/db";
 import { assignSla } from "@/lib/sla";
+import { areasWithinScope, scopedSurvey } from "@/lib/scope";
+import { notifySurveyChange } from "@/lib/live";
 
 export async function PATCH(req, { params }) {
   const user = await currentUser();
   if (!can(user, "verificador")) return NextResponse.json({ error: "No tiene permiso." }, { status: 403 });
   const { id } = await params;
-  const old = await get("SELECT * FROM surveys WHERE id=?", Number(id));
-  const body = await req.json();
+  const old = await scopedSurvey(user, id);
+  let body;
+  try { body = await req.json(); }
+  catch { return NextResponse.json({ error: "Solicitud inválida." }, { status: 400 }); }
   if (!old) return NextResponse.json({ error: "Caso no encontrado." }, { status: 404 });
-  if (!body.reason || body.reason.trim().length < 5) return NextResponse.json({ error: "Indique un motivo válido." }, { status: 400 });
+  if (!body || typeof body.reason !== "string" || body.reason.trim().length < 5) return NextResponse.json({ error: "Indique un motivo válido." }, { status: 400 });
   const allowed = { category: ["Queja", "Sugerencia", "Felicitación", "Mixta", "Sin observaciones"], priority: ["Crítico", "Alto", "Medio", "Bajo", "Informativo"] };
   if (!allowed.category.includes(body.category) || !allowed.priority.includes(body.priority)) return NextResponse.json({ error: "Valor inválido." }, { status: 400 });
+  if (!(await areasWithinScope(user, body.areas)))
+    return NextResponse.json({ error: "No puede asignar áreas fuera de su alcance." }, { status: 403 });
   const original = JSON.parse(old.ai_original || "{}");
   await transaction(async () => {
     for (const field of ["category", "priority", "summary", "primary_topic"]) {
@@ -39,6 +45,7 @@ export async function PATCH(req, { params }) {
     await audit({ userId: user.id, action: "HUMAN_REVIEW", entityType: "survey", entityId: old.id, before: { category: old.category, priority: old.priority, summary: old.summary, topic: old.primary_topic }, after: { category: body.category, priority: body.priority, summary: body.summary, topic: body.primary_topic, areas: body.areas, reason: body.reason } });
   });
   await assignSla(old.id);
+  await notifySurveyChange("survey.updated", { entityId: old.id });
   return NextResponse.json({ ok: true });
 }
 

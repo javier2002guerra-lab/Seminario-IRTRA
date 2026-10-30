@@ -1,0 +1,23 @@
+{
+  "executedAt": "2026-10-30T04:25:03.702Z",
+  "exitCode": 0,
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "dependencies": {
+      "prod": 41,
+      "dev": 174,
+      "optional": 39,
+      "peer": 1,
+      "peerOptional": 0,
+      "total": 251
+    }
+  },
+  "vulnerabilities": {}
+}

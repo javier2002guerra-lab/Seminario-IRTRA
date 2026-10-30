@@ -1,0 +1,77 @@
+▲ Next.js 16.4.3 (Turbopack)
+- Environments: .env.local, .env
+✓ Running next.config.mjs took 116ms
+- Experiments (use with caution):
+  · cpus: 1
+  · serverActions
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 17.9s
+  Running TypeScript ...
+  Finished TypeScript in 580ms ...
+  Collecting page data using 1 worker ...
+node : (node:2756) ExperimentalWarning: Importing JSON modules is an experimental feature and might change at any time
+En línea: 2 Carácter: 25
++ ... Process -Id 18532; node scripts/qa.mjs build *> .qa/build.log; Get-Co ...
++                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:2756) Exp...nge at any time:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(Use `node --trace-warnings ...` to show where the warning was created)
+  Generating static pages using 1 worker (0/14) ...
+  Generating static pages using 1 worker (3/14) 
+  Generating static pages using 1 worker (6/14) 
+  Generating static pages using 1 worker (10/14) 
+✓ Generating static pages using 1 worker (14/14) in 331ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /acciones
+├ ƒ /alertas
+├ ƒ /api/actions
+├ ƒ /api/actions/[id]
+├ ƒ /api/actions/[id]/finance
+├ ƒ /api/admin/areas
+├ ƒ /api/admin/report-schedules
+├ ƒ /api/admin/users
+├ ƒ /api/auth/login
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/mfa/setup
+├ ƒ /api/auth/mfa/verify
+├ ƒ /api/auth/password
+├ ƒ /api/auth/session
+├ ƒ /api/export
+├ ƒ /api/health
+├ ƒ /api/notifications
+├ ƒ /api/reports/export
+├ ƒ /api/scanner/ingest
+├ ƒ /api/support
+├ ƒ /api/surveys
+├ ƒ /api/surveys/[id]
+├ ƒ /api/surveys/[id]/data
+├ ƒ /api/surveys/[id]/deletion
+├ ƒ /api/surveys/[id]/file
+├ ƒ /api/surveys/[id]/followups
+├ ƒ /api/surveys/[id]/reanalyze
+├ ƒ /api/surveys/[id]/recovery
+├ ƒ /api/surveys/[id]/validation
+├ ƒ /areas
+├ ƒ /auditoria
+├ ƒ /carga
+├ ƒ /encuestas
+├ ƒ /encuestas/[id]
+├ ƒ /integraciones
+├ ƒ /login
+├ ƒ /reportes
+├ ƒ /reportes/ejecutivo
+├ ƒ /revision
+├ ƒ /seguridad
+└ ƒ /usuarios
+
+
+ƒ Proxy (Middleware)
+
+ƒ  (Dynamic)  server-rendered on demand
+

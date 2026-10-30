@@ -26,6 +26,10 @@ test-results/
 __pycache__/
 .DS_Store
 *.log
+.qa/
+cypress/downloads/
+cypress/screenshots/
+cypress/videos/
 *.docx
 *.xls
 *.xlsx
@@ -38,3 +42,6 @@ irtra-server*.log
 crear_osi_mensajeria.py
 revise_informe.py
 Diagrama_Modelo.png
+ENTREGA_EMPRESA_IRTRA_*/
+irtra_calidad_ia.egg-info/
+docs/informe/.__build.html

@@ -1,0 +1,91 @@
+{
+  "startedAt": "2026-10-30T04:36:10.404Z",
+  "endedAt": "2026-10-30T04:37:25.616Z",
+  "totalTests": 8,
+  "totalPassed": 8,
+  "totalFailed": 0,
+  "totalSkipped": 0,
+  "totalPending": 0,
+  "runs": [
+    {
+      "spec": "cypress\\e2e\\production-readiness.cy.js",
+      "stats": {
+        "duration": 75212,
+        "endedAt": "2026-10-30T04:37:25.616Z",
+        "failures": 0,
+        "passes": 8,
+        "pending": 0,
+        "skipped": 0,
+        "startedAt": "2026-10-30T04:36:10.404Z",
+        "suites": 2,
+        "tests": 8
+      },
+      "tests": [
+        {
+          "title": [
+            "Acceso y seguridad",
+            "impide que un verificador vea o edite otra área y administre usuarios"
+          ],
+          "state": "passed",
+          "error": null
+        },
+        {
+          "title": [
+            "Acceso y seguridad",
+            "protege páginas, originales y exportaciones sin sesión"
+          ],
+          "state": "passed",
+          "error": null
+        },
+        {
+          "title": [
+            "Acceso y seguridad",
+            "rechaza origen externo, JSON inválido y bloquea intentos repetidos"
+          ],
+          "state": "passed",
+          "error": null
+        },
+        {
+          "title": [
+            "Acceso y seguridad",
+            "exige MFA real, permite navegar y revoca la sesión al salir"
+          ],
+          "state": "passed",
+          "error": null
+        },
+        {
+          "title": [
+            "Encuestas y Excel",
+            "registra seguimiento, recuperación, plan financiero y eliminación auditada"
+          ],
+          "state": "passed",
+          "error": null
+        },
+        {
+          "title": [
+            "Encuestas y Excel",
+            "edita desde el formulario, confirma y descarga XLSM/XLSX con datos exactos"
+          ],
+          "state": "passed",
+          "error": null
+        },
+        {
+          "title": [
+            "Encuestas y Excel",
+            "rechaza archivos falsos y recibe imágenes sin inventar extracciones"
+          ],
+          "state": "passed",
+          "error": null
+        },
+        {
+          "title": [
+            "Encuestas y Excel",
+            "rechaza fechas imposibles y ediciones inválidas sin cambiar el registro"
+          ],
+          "state": "passed",
+          "error": null
+        }
+      ]
+    }
+  ]
+}

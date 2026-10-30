@@ -20,6 +20,7 @@ await transaction(async () => {
     await run("DELETE FROM survey_files WHERE survey_id=?", r.id);
     await run("DELETE FROM corrections WHERE survey_id=?", r.id);
     await run("DELETE FROM followups WHERE survey_id=?", r.id);
+    await run("DELETE FROM guest_recovery WHERE survey_id=?", r.id);
     await run(
       "UPDATE surveys SET stored_name='PURGED-'||id,original_name='Documento eliminado por retención',summary='[Información anonimizada por política de retención]',extracted_data='{}',ai_original='{}',secondary_topics='[]',restaurant=NULL,hotel=NULL,origin_place=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=?",
       r.id,
@@ -31,6 +32,12 @@ await transaction(async () => {
       after: { retention_days: days },
     });
   }
+  await run(
+    "DELETE FROM request_limits WHERE window_started_at<CURRENT_TIMESTAMP-INTERVAL '1 day'",
+  );
+  await run(
+    "DELETE FROM login_attempts WHERE last_attempt_at<CURRENT_TIMESTAMP-INTERVAL '90 days' AND (blocked_until IS NULL OR blocked_until<CURRENT_TIMESTAMP)",
+  );
 });
 console.log(
   `${rows.length} caso(s) anonimizado(s) según retención de ${days} días.`,

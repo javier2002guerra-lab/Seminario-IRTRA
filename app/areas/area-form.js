@@ -43,6 +43,7 @@ export default function AreaForm() {
           ["info", 120],
         ].map(([n, v]) => (
           <input
+            key={n}
             className="input"
             style={{ minWidth: 0 }}
             type="number"

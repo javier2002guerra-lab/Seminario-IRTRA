@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   HOTEL_OPTIONS,
   RESTAURANT_OPTIONS,
@@ -32,6 +32,8 @@ export default function DataEditor({ record, ratings = [] }) {
   const g = extracted.general_data || {}, n = extracted.numbered_answers || {};
   const ratingMap = new Map(ratings.map(x => [x.service_name, x.rating]));
   const [msg, setMsg] = useState(""), [saving, setSaving] = useState(false);
+  const [ready, setReady] = useState(false);
+  useEffect(() => { setReady(true); }, []);
   const [hotelId, setHotelId] = useState(
     optionId(HOTEL_OPTIONS, record.hotel || g.hotel),
   );
@@ -57,7 +59,7 @@ export default function DataEditor({ record, ratings = [] }) {
     if (response.ok) setTimeout(()=>location.reload(),900);
   }
 
-  return <form className="survey-editor" onSubmit={save}>
+  return <form className="survey-editor" method="post" onSubmit={save}>
     {Array.from({length:6},(_,i)=><input key={i} type="hidden" name={`item_${i+1}`} value={n[`item_${i+1}`] || ""} readOnly/>)}
     <header className="editor-header">
       <div className="editor-logo">IRTRA</div>
@@ -93,7 +95,7 @@ export default function DataEditor({ record, ratings = [] }) {
     </section>
     <footer className="editor-actions">
       <label>Motivo de la corrección<textarea name="reason" required minLength="5" placeholder="Ejemplo: verificación contra la imagen original"/></label>
-      <button className="btn" disabled={saving}>{saving ? "Guardando…" : "Guardar todos los cambios"}</button>
+      <button className="btn" disabled={!ready || saving}>{saving ? "Guardando…" : "Guardar todos los cambios"}</button>
       {msg && <p className={msg.startsWith("Datos guardados") ? "save-ok" : "notice"}>{msg}</p>}
     </footer>
   </form>;

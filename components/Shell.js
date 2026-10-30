@@ -14,6 +14,7 @@ const base = [
   ["/usuarios", "♙", "Usuarios"],
   ["/auditoria", "◉", "Auditoría"],
   ["/integraciones", "⚙", "Integraciones"],
+  ["/seguridad", "◆", "Mi seguridad"],
 ];
 export default async function Shell({ children, active = "/" }) {
   const user = await currentUser();

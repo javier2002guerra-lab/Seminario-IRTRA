@@ -39,8 +39,8 @@ export default function UserForm({ areas }) {
         style={{ width: "100%", marginBottom: 10 }}
         type="password"
         name="password"
-        placeholder="Contraseña inicial (12+ caracteres)"
-        minLength="12"
+        placeholder="Contraseña inicial (14+ caracteres)"
+        minLength="14"
         required
       />
       <select

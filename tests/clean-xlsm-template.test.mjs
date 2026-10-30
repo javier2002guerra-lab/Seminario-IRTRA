@@ -43,10 +43,15 @@ test("la plantilla conserva las cuatro acciones de botones reparadas", () => {
 });
 
 test("el endpoint y el generador manual exportan solo encuestas confirmadas", () => {
+  const shared = fs.readFileSync(
+    path.join(root, "lib", "managerial-export.js"),
+    "utf8",
+  );
+  assert.match(shared, /validation_status='Confirmada'/);
   for (const file of [
     path.join(root, "app", "api", "export", "route.js"),
     path.join(root, "scripts", "generate-current-export.mjs"),
   ]) {
-    assert.match(fs.readFileSync(file, "utf8"), /validation_status='Confirmada'/);
+    assert.match(fs.readFileSync(file, "utf8"), /managerialExportRows/);
   }
 });

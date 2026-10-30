@@ -6,14 +6,23 @@ import {
   RESTAURANT_OPTIONS,
   optionName,
 } from "@/lib/venue-catalog";
+import { scopedSurvey } from "@/lib/scope";
 const originPlaces = ["", "Golfito", "Gimnasio", "Spa", "Boliche"];
 const ratings = ["Excelente", "Bueno", "Regular", "Malo", "Sin dato"];
 export async function PATCH(req, { params }) {
   const user = await currentUser();
   if (!can(user, "verificador")) return NextResponse.json({ error: "Sin permiso para editar la extracción." }, { status: 403 });
-  const { id } = await params, record = await get("SELECT * FROM surveys WHERE id=?", Number(id));
+  const { id } = await params, record = await scopedSurvey(user, id);
   if (!record) return NextResponse.json({ error: "Encuesta no encontrada." }, { status: 404 });
-  const b = await req.json();
+  let b;
+  try { b = await req.json(); }
+  catch { return NextResponse.json({ error: "Solicitud inválida." }, { status: 400 }); }
+  const object = value => value && typeof value === "object" && !Array.isArray(value);
+  if (!object(b) || !object(b.general) || !object(b.numbered) || !Array.isArray(b.ratings) || b.ratings.length > 100 ||
+      b.ratings.some(item => !object(item) || typeof item.service !== "string" || !item.service.trim() || !ratings.includes(item.rating)) ||
+      new Set(b.ratings.map(item => item.service.trim().toLocaleLowerCase())).size !== b.ratings.length ||
+      typeof b.reason !== "string" || b.reason.trim().length < 5)
+    return NextResponse.json({ error: "Datos de encuesta inválidos." }, { status: 400 });
   const hotel = optionName(HOTEL_OPTIONS, b.hotelId);
   const restaurant = optionName(RESTAURANT_OPTIONS, b.restauranteId);
   if (!String(b.reason || "").trim() || (b.hotelId && !hotel) || (b.restauranteId && !restaurant) || !originPlaces.includes(b.origin_place || "")) return NextResponse.json({ error: "Indique un motivo y seleccione opciones válidas." }, { status: 400 });

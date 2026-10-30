@@ -33,7 +33,7 @@
 .correction-after { background: #e9f8f2; color: #12654f; font-weight: 700; }
 .correction-arrow { text-align: center; color: var(--teal); font-weight: 900; }
 .correction-card footer { padding: 12px 15px; border-top: 1px solid var(--line); font-size: 13px; }
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .correction-header { display: block; }
   .correction-header time { display: block; margin-top: 5px; }
   .correction-row { grid-template-columns: 1fr; }

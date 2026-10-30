@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import sharp from "sharp";
-import { validateFile } from "../lib/files.js";
+import path from "node:path";
+import { uploadDirectory, validateFile } from "../lib/files.js";
 const png = await sharp({
   create: { width: 200, height: 200, channels: 3, background: "white" },
 })
@@ -60,3 +61,13 @@ test("rechaza imagen ilegible con firma aparente", async () =>
     ),
     /ilegible/,
   ));
+test("respeta UPLOAD_DIR también en modo producción", () => {
+  const previous = process.env.UPLOAD_DIR;
+  process.env.UPLOAD_DIR = "./private_uploads";
+  assert.equal(
+    uploadDirectory(),
+    path.resolve(process.cwd(), "private_uploads"),
+  );
+  if (previous === undefined) delete process.env.UPLOAD_DIR;
+  else process.env.UPLOAD_DIR = previous;
+});

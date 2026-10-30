@@ -1,0 +1,17 @@
+
+Running 12 tests using 1 worker
+
+  ok  1 e2e\accessibility.spec.mjs:7:1 › las pantallas principales no tienen barreras críticas de accesibilidad (7.9s)
+  ok  2 e2e\accessibility.spec.mjs:26:1 › login y tablero no desbordan en teléfono ni tableta (6.3s)
+  ok  3 e2e\app.spec.mjs:8:1 › protege la aplicación y permite navegar al superusuario (5.2s)
+  ok  4 e2e\app.spec.mjs:41:1 › edita, confirma, reabre y elimina una encuesta con auditoría (4.9s)
+  ok  5 e2e\app.spec.mjs:134:1 › rechaza credenciales incorrectas sin filtrar información (2.1s)
+  ok  6 e2e\app.spec.mjs:143:1 › bloquea API sin sesión (56ms)
+  ok  7 e2e\app.spec.mjs:148:1 › rechaza orígenes cruzados y cuerpos malformados (54ms)
+  ok  8 e2e\app.spec.mjs:164:1 › genera internamente el informe gerencial (11.5s)
+  ok  9 e2e\app.spec.mjs:176:1 › carga encuestas y auditoría sin errores PostgreSQL (4.7s)
+  ok 10 e2e\app.spec.mjs:187:1 › muestra la boleta digital con el formato de la hoja física (4.2s)
+  ok 11 e2e\app.spec.mjs:231:1 › abre el centro ejecutivo, planes de acción e informe gerencial (4.1s)
+  ok 12 e2e\app.spec.mjs:249:1 › valida impacto financiero, salud e integraciones empresariales (4.1s)
+
+  12 passed (1.0m)

@@ -1,12 +1,19 @@
 import { NextResponse } from "next/server";
 import { currentUser, can } from "@/lib/auth";
-import { get, run, audit } from "@/lib/db";
+import { get, run, audit, transaction } from "@/lib/db";
+import { scopedSurvey } from "@/lib/scope";
+import { notifySurveyChange } from "@/lib/live";
 export async function POST(req, { params }) {
   const user = await currentUser();
   if (!can(user, "verificador")) return NextResponse.json({ error: "Sin permiso." }, { status: 403 });
-  const { id } = await params, record = await get("SELECT * FROM surveys WHERE id=?", Number(id)), b = await req.json();
+  const { id } = await params, record = await scopedSurvey(user, id);
+  let b;
+  try { b = await req.json(); }
+  catch { return NextResponse.json({ error: "Solicitud inválida." }, { status: 400 }); }
   if (!record) return NextResponse.json({ error: "Encuesta no encontrada." }, { status: 404 });
-  if (!["confirm", "reopen"].includes(b.action) || !String(b.reason || "").trim()) return NextResponse.json({ error: "Acción y motivo obligatorios." }, { status: 400 });
+  if (!b || !["confirm", "reopen"].includes(b.action) || typeof b.reason !== "string" || b.reason.trim().length < 5) return NextResponse.json({ error: "Acción y motivo obligatorios (al menos 5 caracteres)." }, { status: 400 });
+  await transaction(async () => {
+  Object.assign(record, await get("SELECT * FROM surveys WHERE id=? FOR UPDATE", record.id));
   if (b.action === "confirm") {
     let original = {};
     try { original = JSON.parse(record.ai_original || "{}"); } catch {}
@@ -19,5 +26,7 @@ export async function POST(req, { params }) {
     await run("UPDATE surveys SET validation_status='En revisión',needs_review=1,status=CASE WHEN status='Procesado' THEN 'Pendiente de revisión' ELSE status END,confirmed_by=NULL,confirmed_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=?", record.id);
     await audit({ userId: user.id, action: "SURVEY_REOPEN", entityType: "survey", entityId: record.id, before: { validation_status: record.validation_status, status: record.status }, after: { validation_status: "En revisión", status: record.status === "Procesado" ? "Pendiente de revisión" : record.status, reason: b.reason } });
   }
+  });
+  await notifySurveyChange(b.action === "confirm" ? "survey.confirmed" : "survey.reopened", { entityId: record.id });
   return NextResponse.json({ ok: true });
 }

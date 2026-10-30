@@ -7,24 +7,14 @@ import { assignSla } from "@/lib/sla";
 import { clientIp } from "@/lib/security";
 export const runtime = "nodejs";
 
-const windows = new Map();
-function limited(id) {
-  const now = Date.now(),
-    e = windows.get(id) || { n: 0, start: now };
-  if (now - e.start > 60000) {
-    e.n = 0;
-    e.start = now;
-  }
-  e.n++;
-  windows.set(id, e);
-  return e.n > 20;
-}
+import { consumeRateLimit } from "@/lib/db";
+import { scopedSurvey } from "@/lib/scope";
 
 export async function POST(req) {
   const user = await currentUser();
   if (!can(user, "verificador"))
     return NextResponse.json({ error: "No autorizado." }, { status: 403 });
-  if (limited(user.id))
+  if (await consumeRateLimit(`upload:user:${user.id}`, 20, 60))
     return NextResponse.json(
       { error: "Límite de cargas alcanzado. Intente en un minuto." },
       { status: 429 },
@@ -44,23 +34,26 @@ export async function POST(req) {
       const meta = await validateFile(file.name, file.type, buffer);
       const duplicate = await get("SELECT id FROM surveys WHERE sha256=?", meta.sha256);
       if (duplicate) {
-        await run(
-          "INSERT INTO survey_files(survey_id,content) VALUES(?,?) ON CONFLICT(survey_id) DO UPDATE SET content=EXCLUDED.content",
-          duplicate.id,
-          buffer,
-        );
-        errors.push(`${file.name}: el original existente fue restaurado.`);
+        if (await scopedSurvey(user, duplicate.id)) {
+          await run(
+            "INSERT INTO survey_files(survey_id,content) VALUES(?,?) ON CONFLICT(survey_id) DO UPDATE SET content=EXCLUDED.content",
+            duplicate.id,
+            buffer,
+          );
+          errors.push(`${file.name}: el original existente fue restaurado.`);
+        } else errors.push(`${file.name}: documento duplicado.`);
         continue;
       }
       const stored = saveOriginal(buffer, meta.ext);
       const info = await run(
-        "INSERT INTO surveys(original_name,stored_name,mime_type,size,sha256,status) VALUES(?,?,?,?,?,?) RETURNING id",
+        "INSERT INTO surveys(original_name,stored_name,mime_type,size,sha256,status,created_by) VALUES(?,?,?,?,?,?,?) RETURNING id",
         file.name.slice(0, 255),
         stored,
         meta.mime,
         buffer.length,
         meta.sha256,
         "En procesamiento",
+        user.id,
       );
       const id = Number(info.lastInsertRowid);
       await run("INSERT INTO survey_files(survey_id,content) VALUES(?,?)", id, buffer);

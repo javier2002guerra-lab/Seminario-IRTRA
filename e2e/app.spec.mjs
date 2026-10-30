@@ -1,26 +1,17 @@
 import { test, expect } from "@playwright/test";
 import { run, get } from "../lib/db.js";
+import { login, prepareMfaTest } from "./auth-helper.mjs";
+const origin = process.env.E2E_BASE_URL || "https://localhost:3443";
 test.beforeEach(async () => {
-  await run("DELETE FROM login_attempts");
+  await prepareMfaTest();
 });
-async function login(page) {
-  await page.goto("/login");
-  await page.locator('input[name="email"]').fill("admin@irtra.local");
-  await page
-    .locator('input[name="password"]')
-    .fill(
-      process.env.E2E_ADMIN_PASSWORD ||
-        process.env.SUPERUSER_PASSWORD ||
-        "Cambiar-Ahora-2026!",
-    );
-  await page.getByRole("button", { name: "Ingresar al sistema" }).click();
-  await expect(page).toHaveURL("https://localhost:3443/");
-  const guide = page.getByRole("button", { name: "Comenzar" });
-  if (await guide.isVisible().catch(() => false)) await guide.click();
-}
 test("protege la aplicación y permite navegar al superusuario", async ({
   page,
 }) => {
+  const sessionBefore = await get(
+    "SELECT session_version FROM users WHERE lower(email)=lower(?)",
+    "admin@irtra.local",
+  );
   await page.goto("/");
   await expect(page).toHaveURL(/\/login$/);
   await login(page);
@@ -39,6 +30,13 @@ test("protege la aplicación y permite navegar al superusuario", async ({
   ).toBeVisible();
   await page.getByRole("button", { name: "Salir" }).click();
   await expect(page).toHaveURL(/\/login$/);
+  const sessionAfter = await get(
+    "SELECT session_version FROM users WHERE lower(email)=lower(?)",
+    "admin@irtra.local",
+  );
+  expect(Number(sessionAfter.session_version)).toBe(
+    Number(sessionBefore.session_version) + 2,
+  );
 });
 test("edita, confirma, reabre y elimina una encuesta con auditoría", async ({
   page,
@@ -62,7 +60,7 @@ test("edita, confirma, reabre y elimina una encuesta con auditoría", async ({
       ]),
     );
     let r = await page.request.patch(`/api/surveys/${id}/data`, {
-      headers: { origin: "https://localhost:3443" },
+      headers: { origin },
       data: {
         general: { visitor_name: "Persona corregida" },
         numbered,
@@ -84,7 +82,7 @@ test("edita, confirma, reabre y elimina una encuesta con auditoría", async ({
       needs_review: 1,
     });
     r = await page.request.post(`/api/surveys/${id}/validation`, {
-      headers: { origin: "https://localhost:3443" },
+      headers: { origin },
       data: { action: "confirm", reason: "Información revisada correctamente" },
     });
     expect(r.status()).toBe(200);
@@ -97,12 +95,12 @@ test("edita, confirma, reabre y elimina una encuesta con auditoría", async ({
       needs_review: 0,
     });
     r = await page.request.post(`/api/surveys/${id}/validation`, {
-      headers: { origin: "https://localhost:3443" },
+      headers: { origin },
       data: { action: "reopen", reason: "Se detectó una corrección adicional" },
     });
     expect(r.status()).toBe(200);
     r = await page.request.post(`/api/surveys/${id}/deletion`, {
-      headers: { origin: "https://localhost:3443" },
+      headers: { origin },
       data: {
         action: "request",
         reason: "Eliminar registro generado por prueba",
@@ -110,7 +108,7 @@ test("edita, confirma, reabre y elimina una encuesta con auditoría", async ({
     });
     expect(r.status()).toBe(200);
     r = await page.request.post(`/api/surveys/${id}/deletion`, {
-      headers: { origin: "https://localhost:3443" },
+      headers: { origin },
       data: { action: "approve", reason: "Solicitud de prueba aprobada" },
     });
     expect(r.status()).toBe(200);
@@ -137,8 +135,9 @@ test("rechaza credenciales incorrectas sin filtrar información", async ({
   page,
 }) => {
   await page.goto("/login");
+  await page.locator('input[name="email"]').fill("admin@irtra.local");
   await page.locator('input[name="password"]').fill("incorrecta");
-  await page.getByRole("button", { name: "Ingresar al sistema" }).click();
+  await page.getByRole("button", { name: "Continuar" }).click();
   await expect(page.getByText("Credenciales incorrectas.")).toBeVisible();
 });
 test("bloquea API sin sesión", async ({ request }) => {
@@ -155,7 +154,7 @@ test("rechaza orígenes cruzados y cuerpos malformados", async ({ request }) => 
 
   const malformed = await request.post("/api/auth/login", {
     headers: {
-      Origin: "https://localhost:3443",
+      Origin: origin,
       "Content-Type": "application/json",
     },
     data: "{",
@@ -254,21 +253,23 @@ test("valida impacto financiero, salud e integraciones empresariales", async ({
   let response = await page.request.get("/api/health");
   expect(response.status()).toBe(200);
   expect((await response.json()).status).toBe("healthy");
+  const area = await get("SELECT id FROM areas WHERE active=1 ORDER BY id LIMIT 1");
   response = await page.request.post("/api/actions", {
-    headers: { origin: "https://localhost:3443" },
+    headers: { origin },
     data: {
       title: "Acción financiera de prueba",
       description: "Validación automática",
       priority: "Medio",
       expected_impact: "Reducir recurrencia",
       estimated_savings: 500,
+      area_id: area.id,
     },
   });
   expect(response.status()).toBe(201);
   const actionId = (await response.json()).id;
   try {
     response = await page.request.patch(`/api/actions/${actionId}/finance`, {
-      headers: { origin: "https://localhost:3443" },
+      headers: { origin },
       data: {
         financial_status: "Validado",
         actual_savings: 425,

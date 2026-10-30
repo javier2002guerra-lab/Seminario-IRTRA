@@ -1,0 +1,74 @@
+# CI: ejecuta las pruebas unitarias y de integración (incluye los dos aportes:
+# tests/cache.test.mjs, tests/events.test.mjs y tests/executive-cache.test.mjs)
+# contra un PostgreSQL efímero con datos sintéticos. No usa secretos reales.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["seminario-*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: irtra_qa
+          POSTGRES_PASSWORD: ci_only_password
+          POSTGRES_DB: irtra_qa
+        ports: ["55434:5432"]
+        options: >-
+          --health-cmd "pg_isready -U irtra_qa"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias
+        run: |
+          npm ci
+          python -m pip install -r excel-deps.lock
+      - name: Configurar entorno QA sintético
+        run: |
+          mkdir -p .qa/uploads
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=localhost" \
+            -keyout .qa/localhost-key.pem -out .qa/localhost.pem
+          cat > .env.qa.local <<ENV
+          NODE_ENV="development"
+          QA_ONLY="true"
+          DATABASE_URL="postgresql://irtra_qa:ci_only_password@127.0.0.1:55434/irtra_qa"
+          PGSSL_MODE="disable"
+          PGSSL="false"
+          APP_BASE_URL="https://localhost:3444"
+          PORT="3444"
+          BIND_HOST="127.0.0.1"
+          SESSION_SECRET="$(openssl rand -hex 48)"
+          CSRF_SECRET="$(openssl rand -hex 48)"
+          MFA_ENCRYPTION_KEY="$(openssl rand -hex 48)"
+          COOKIE_SECURE="true"
+          SUPERUSER_EMAIL="admin@irtra.local"
+          SUPERUSER_PASSWORD="Qa!7$(openssl rand -hex 24)"
+          PYTHON_COMMAND="python"
+          FILE_SCAN_MODE="signature"
+          EXTERNAL_AI_ENABLED="false"
+          EXTERNAL_AI_PII_APPROVED="false"
+          EXTERNAL_SUPPORT_AI_ENABLED="false"
+          SCAN_WATCH_ENABLED="false"
+          REPORT_SCHEDULER_ENABLED="false"
+          TRUST_PROXY="false"
+          EXTERNAL_TLS_TERMINATION="false"
+          HTTPS_KEY_PATH="$PWD/.qa/localhost-key.pem"
+          HTTPS_CERT_PATH="$PWD/.qa/localhost.pem"
+          UPLOAD_DIR="$PWD/.qa/uploads"
+          ENV
+      - name: Pruebas unitarias e integración
+        run: node scripts/qa.mjs test

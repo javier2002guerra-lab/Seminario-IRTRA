@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { parseExportRange, parseMonth, previousMonth } from "../lib/report-range.js";
+import { reportRange } from "../lib/reports.js";
+
+test("ambos reportes rechazan fechas imposibles y rangos invertidos", () => {
+  for (const params of [{ from: "2026-02-31", to: "2026-03-01" }, { from: "2026-03-01", to: "2026-01-01" }, { from: "ayer" }])
+    assert.throws(() => reportRange(params));
+});
 
 test("acepta exportaciones de cualquier intervalo de fechas", () => {
   assert.equal(parseExportRange(new URLSearchParams("from=2026-07-01&to=2026-07-31")).days, 31);

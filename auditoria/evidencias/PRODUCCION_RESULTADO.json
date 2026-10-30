@@ -1,0 +1,41 @@
+{
+  "ready": false,
+  "checks": [
+    {
+      "name": "environment",
+      "status": "fail",
+      "message": "FILE_SCAN_MODE=clamav es obligatorio en producción."
+    },
+    {
+      "name": "database-least-privilege-and-tls",
+      "status": "pass"
+    },
+    {
+      "name": "antimalware",
+      "status": "fail",
+      "message": "ClamAV no está activo."
+    },
+    {
+      "name": "mfa-for-active-users",
+      "status": "fail",
+      "message": "2 cuenta(s) activa(s) todavía no registraron MFA."
+    },
+    {
+      "name": "redundant-administrators",
+      "status": "fail",
+      "message": "Se requieren al menos dos administradores activos con MFA para recuperación controlada."
+    },
+    {
+      "name": "area-assignment-for-verifiers",
+      "status": "pass"
+    },
+    {
+      "name": "validated-constraints",
+      "status": "pass"
+    },
+    {
+      "name": "immutable-audit-triggers",
+      "status": "pass"
+    }
+  ]
+}

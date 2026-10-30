@@ -3,12 +3,13 @@ import { currentUser, can } from "@/lib/auth";
 import { query } from "@/lib/db";
 import { redirect } from "next/navigation";
 import UserForm from "./user-form";
+import UserSecurityActions from "./user-security-actions";
 export const dynamic = "force-dynamic";
 export default async function Page() {
   const user = await currentUser();
   if (!can(user, "admin")) redirect("/");
   const users = await query(
-    "SELECT u.id,u.name,u.email,u.role,u.active,string_agg(a.name,', ' ORDER BY a.name) areas FROM users u LEFT JOIN user_areas ua ON ua.user_id=u.id LEFT JOIN areas a ON a.id=ua.area_id GROUP BY u.id ORDER BY u.name",
+    "SELECT u.id,u.name,u.email,u.role,u.active,u.mfa_enabled,string_agg(a.name,', ' ORDER BY a.name) areas FROM users u LEFT JOIN user_areas ua ON ua.user_id=u.id LEFT JOIN areas a ON a.id=ua.area_id GROUP BY u.id ORDER BY u.name",
   );
   const areas = await query("SELECT id,name FROM areas WHERE active=1 ORDER BY name");
   return (
@@ -27,6 +28,7 @@ export default async function Page() {
                 <th>Rol</th>
                 <th>Áreas</th>
                 <th>Estado</th>
+                <th>Seguridad</th>
               </tr>
             </thead>
             <tbody>
@@ -43,6 +45,10 @@ export default async function Page() {
                     <span className="badge">
                       {x.active ? "Activo" : "Inactivo"}
                     </span>
+                  </td>
+                  <td>
+                    <small>MFA: {x.mfa_enabled ? "activo" : "pendiente"}</small>
+                    {Number(x.id) !== Number(user.id) && <UserSecurityActions user={x} />}
                   </td>
                 </tr>
               ))}

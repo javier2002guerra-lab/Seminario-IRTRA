@@ -4,12 +4,13 @@ import { NextResponse } from "next/server";
 import { currentUser, can } from "@/lib/auth";
 import { get, run, audit, transaction } from "@/lib/db";
 import { uploadDirectory } from "@/lib/files";
+import { scopedSurvey } from "@/lib/scope";
 
 export async function POST(req, { params }) {
   const user = await currentUser();
   if (!can(user, "verificador")) return NextResponse.json({ error: "No autorizado." }, { status: 403 });
   const { id } = await params;
-  const survey = await get("SELECT * FROM surveys WHERE id=?", Number(id));
+  const survey = await scopedSurvey(user, id);
   if (!survey) return NextResponse.json({ error: "Encuesta no encontrada." }, { status: 404 });
   const body = await req.json();
   const action = String(body.action || "");
@@ -20,7 +21,7 @@ export async function POST(req, { params }) {
     const pending = await get("SELECT id FROM deletion_requests WHERE survey_id=? AND status='Pendiente'", survey.id);
     if (pending) return NextResponse.json({ error: "Ya existe una solicitud pendiente." }, { status: 409 });
     const inserted = await run("INSERT INTO deletion_requests(survey_id,requested_by,reason) VALUES(?,?,?) RETURNING id", survey.id, user.id, reason.slice(0, 500));
-    await audit({ userId: user.id, action: "DELETION_REQUEST", entityType: "survey", entityId: survey.id, after: { request_id: inserted.rows?.[0]?.id, reason } });
+    await audit({ userId: user.id, action: "DELETION_REQUEST", entityType: "survey", entityId: survey.id, after: { request_id: inserted.lastInsertRowid, reason } });
     return NextResponse.json({ ok: true });
   }
 

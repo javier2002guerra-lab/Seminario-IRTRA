@@ -39,9 +39,12 @@ export default async function Page({ searchParams }) {
     `SELECT DISTINCT s.*,CASE s.priority WHEN 'Crítico' THEN 1 WHEN 'Alto' THEN 2 WHEN 'Medio' THEN 3 WHEN 'Bajo' THEN 4 ELSE 5 END priority_order FROM surveys s LEFT JOIN survey_areas sa ON sa.survey_id=s.id LEFT JOIN areas a ON a.id=sa.area_id LEFT JOIN service_ratings sr ON sr.survey_id=s.id WHERE ${clauses.join(" AND ")} ORDER BY priority_order,s.created_at DESC`,
     ...vals,
   );
-  const areas = await query("SELECT id,name FROM areas WHERE active=1 ORDER BY name"),
+  const areas = user.role === "admin"
+      ? await query("SELECT id,name FROM areas WHERE active=1 ORDER BY name")
+      : await query("SELECT a.id,a.name FROM areas a JOIN user_areas ua ON ua.area_id=a.id WHERE ua.user_id=? AND a.active=1 ORDER BY a.name", user.id),
     services = await query(
-      "SELECT DISTINCT service_name FROM service_ratings ORDER BY service_name",
+      `SELECT DISTINCT sr.service_name FROM service_ratings sr JOIN surveys s ON s.id=sr.survey_id WHERE ${scope.where} ORDER BY sr.service_name`,
+      ...scope.params,
     );
   const today = new Date().toISOString().slice(0,10), monthAgo = new Date(Date.now()-30*86400000).toISOString().slice(0,10);
   return (
@@ -62,7 +65,7 @@ export default async function Page({ searchParams }) {
         <select className="input" name="area" defaultValue={p.area || ""}>
           <option value="">Toda área</option>
           {areas.map((x) => (
-            <option value={x.id}>{x.name}</option>
+            <option key={x.id} value={x.id}>{x.name}</option>
           ))}
         </select>
         <select
@@ -72,7 +75,7 @@ export default async function Page({ searchParams }) {
         >
           <option value="">Toda prioridad</option>
           {["Crítico", "Alto", "Medio", "Bajo", "Informativo"].map((x) => (
-            <option>{x}</option>
+            <option key={x} value={x}>{x}</option>
           ))}
         </select>
         <select
@@ -88,13 +91,13 @@ export default async function Page({ searchParams }) {
             "Mixta",
             "Sin observaciones",
           ].map((x) => (
-            <option>{x}</option>
+            <option key={x} value={x}>{x}</option>
           ))}
         </select>
         <select className="input" name="service" defaultValue={p.service || ""}>
           <option value="">Todo servicio</option>
           {services.map((x) => (
-            <option>{x.service_name}</option>
+            <option key={x.service_name} value={x.service_name}>{x.service_name}</option>
           ))}
         </select>
         <select className="input" name="status" defaultValue={p.status || ""}>
@@ -110,7 +113,7 @@ export default async function Page({ searchParams }) {
             "Cerrado",
             "Error",
           ].map((x) => (
-            <option>{x}</option>
+            <option key={x} value={x}>{x}</option>
           ))}
         </select>
         <button className="btn">Filtrar</button>

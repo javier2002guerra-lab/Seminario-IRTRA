@@ -1,0 +1,47 @@
+%% Arquitectura del sistema IRTRA Calidad IA (resaltando los dos aportes).
+%% Fuente editable. Render: https://mermaid.live o extensión Mermaid.
+flowchart TB
+  subgraph Cliente["Navegador (verificador / administrador)"]
+    UI["Next.js App Router (React)"]
+    LU["LiveUpdates.js\n(EventSource → aviso + refresh)"]
+  end
+
+  subgraph Servidor["Servidor Node (HTTPS) — server.mjs"]
+    Pages["Páginas server-side\n(inicio, reportes, alertas)"]
+    Routes["Rutas API\n(surveys, actions, export, stream, cache/stats)"]
+    subgraph Aporte1["APORTE 1 — Caché"]
+      Cache["lib/cache.js\ncache-aside + TTL + invalidación"]
+      CacheR["lib/cache-redis.js\n(backend distribuido opcional)"]
+    end
+    subgraph Aporte2["APORTE 2 — Tiempo real"]
+      Events["lib/events.js\nbus de eventos (SSE)"]
+      Stream["app/api/stream\nendpoint SSE"]
+    end
+    Exec["lib/executive.js\n13 agregaciones"]
+    Ingest["lib/ingest.js + scanner-watch.js\nescaneo e ingesta"]
+    Analyzer["lib/analyzer.js\nvalidación + análisis"]
+    Live["lib/live.js\nnotifySurveyChange"]
+  end
+
+  DB[("PostgreSQL\nencuestas, áreas, acciones,\nrecuperación, auditoría")]
+  OpenAI["Proveedor IA externo\n(opcional, con aprobación PII)"]
+  Excel["Plantilla .xlsm\n(informe gerencial)"]
+
+  UI --> Pages
+  UI --> Routes
+  LU <-. "SSE: text/event-stream" .-> Stream
+  Pages --> Exec
+  Routes --> Exec
+  Exec -->|cache-aside| Cache
+  Cache -. "si CACHE_BACKEND=redis" .-> CacheR
+  Exec -->|miss| DB
+  Routes --> Live
+  Ingest --> Live
+  Live -->|invalida| Cache
+  Live -->|publica| Events
+  Events --> Stream
+  Ingest --> Analyzer
+  Analyzer -. "opcional" .-> OpenAI
+  Ingest --> DB
+  Routes --> Excel
+  Routes --> DB

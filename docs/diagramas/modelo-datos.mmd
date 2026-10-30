@@ -1,0 +1,67 @@
+%% Modelo de datos (entidades relevantes a los aportes).
+%% Fuente editable. Render: https://mermaid.live
+erDiagram
+  USERS ||--o{ USER_AREAS : "tiene alcance"
+  AREAS ||--o{ USER_AREAS : "asignada a"
+  AREAS ||--o{ SURVEY_AREAS : "clasifica"
+  SURVEYS ||--o{ SURVEY_AREAS : "pertenece a"
+  SURVEYS ||--o{ SERVICE_RATINGS : "califica"
+  SURVEYS ||--o{ GUEST_RECOVERY : "recupera"
+  SURVEYS ||--o{ AI_EVALUATIONS : "evalúa"
+  SURVEYS ||--o{ ACTION_PLANS : "origina"
+  AREAS ||--o{ ACTION_PLANS : "responsable"
+
+  USERS {
+    bigint id PK
+    text email
+    text role "admin | verificador"
+    int session_version
+    int mfa_enabled
+  }
+  AREAS {
+    bigint id PK
+    text name
+    int active
+  }
+  SURVEYS {
+    bigint id PK
+    text status "En procesamiento | Pendiente | Procesado | Error"
+    text validation_status "Confirmada | En revisión | ..."
+    text category
+    text priority
+    int needs_review
+    text primary_topic
+    text restaurant
+    text hotel
+    timestamptz created_at
+  }
+  SERVICE_RATINGS {
+    bigint survey_id FK
+    text service_name
+    text rating
+    int score
+    int negative
+  }
+  SURVEY_AREAS {
+    bigint survey_id FK
+    bigint area_id FK
+  }
+  GUEST_RECOVERY {
+    bigint survey_id FK
+    text status
+    int recovered
+    int satisfaction_after
+  }
+  AI_EVALUATIONS {
+    bigint survey_id FK
+    text evaluation_type
+    int category_match
+    int priority_match
+  }
+  ACTION_PLANS {
+    bigint id PK
+    bigint survey_id FK
+    bigint area_id FK
+    text status "Pendiente | En ejecución | Verificada | Cerrada"
+    numeric actual_savings
+  }

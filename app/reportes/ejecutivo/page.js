@@ -1,15 +1,18 @@
 import { executiveData } from "@/lib/executive";
 import PrintButton from "./print-button";
+import { currentUser } from "@/lib/auth";
+import { surveyScope } from "@/lib/scope";
 export const dynamic = "force-dynamic";
 function date(value, fallback) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(value || "")) ? value : fallback;
 }
 export default async function ExecutiveReport({ searchParams }) {
-  const p = await searchParams,
+  const user = await currentUser(),
+    p = await searchParams,
     today = new Date().toISOString().slice(0, 10),
     from = date(p.from, `${today.slice(0, 8)}01`),
     to = date(p.to, today),
-    data = await executiveData({ from, to });
+    data = await executiveData({ from, to, scope: surveyScope(user, "s") });
   return (
     <main className="print-report">
       <header className="print-cover">

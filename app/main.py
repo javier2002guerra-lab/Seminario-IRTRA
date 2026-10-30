@@ -1,10 +1,19 @@
 import json
 import hashlib
+import os
 import unicodedata
 import uuid
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
+
+if os.getenv("NODE_ENV", "development").lower() == "production":
+    raise RuntimeError("La aplicación FastAPI heredada está deshabilitada en producción.")
+if os.getenv("ENABLE_LEGACY_FASTAPI") != "development-only":
+    raise RuntimeError(
+        "FastAPI heredado bloqueado. Use la aplicación Node o defina "
+        "ENABLE_LEGACY_FASTAPI=development-only en un entorno aislado."
+    )
 
 from fastapi import BackgroundTasks, FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, StreamingResponse
@@ -44,7 +53,7 @@ PORTAL_NAV = [
 def main() -> None:
     import uvicorn
 
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=False)
 
 
 @app.on_event("startup")

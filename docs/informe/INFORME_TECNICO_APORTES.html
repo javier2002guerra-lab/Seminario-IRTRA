@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Informe técnico — Aportes de Seminario (IRTRA Calidad IA)</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<style>
+  :root{--ink:#1f2933;--muted:#5b6b7a;--teal:#0f766e;--line:#d9e0e6;--bg:#fff;--chip:#e6f3f1}
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);margin:0;line-height:1.5;font-size:12.5px}
+  .page{max-width:900px;margin:0 auto;padding:36px 40px}
+  h1{font-size:25px;margin:0 0 4px;color:var(--teal)}
+  h2{font-size:17px;margin:26px 0 8px;border-bottom:2px solid var(--line);padding-bottom:4px;color:var(--teal)}
+  h3{font-size:14px;margin:16px 0 4px}
+  p,li{color:var(--ink)}
+  .muted{color:var(--muted)}
+  .cover{border:1px solid var(--line);border-radius:12px;padding:22px 24px;background:linear-gradient(180deg,#f3faf9,#fff)}
+  .meta{display:grid;grid-template-columns:150px 1fr;gap:4px 14px;margin-top:10px;font-size:12px}
+  .meta b{color:var(--muted);font-weight:600}
+  .chip{display:inline-block;background:var(--chip);color:var(--teal);border-radius:999px;padding:2px 10px;font-size:11px;font-weight:700;margin-right:6px}
+  table{border-collapse:collapse;width:100%;margin:10px 0;font-size:11.5px}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+  th{background:#f4f7f8}
+  code{background:#f1f5f7;padding:1px 5px;border-radius:5px;font-size:11.5px}
+  pre.code{background:#0f172a;color:#e2e8f0;padding:12px 14px;border-radius:8px;overflow:auto;font-size:11px}
+  .kpi{display:flex;gap:14px;flex-wrap:wrap;margin:10px 0}
+  .kpi div{border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:130px}
+  .kpi b{display:block;font-size:20px;color:var(--teal)}
+  figure{margin:14px 0;border:1px solid var(--line);border-radius:10px;padding:12px;background:#fcfdfd}
+  figcaption{font-size:11px;color:var(--muted);margin-top:6px;text-align:center}
+  .mermaid{display:flex;justify-content:center}
+  img.shot{max-width:100%;border:1px solid var(--line);border-radius:8px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .note{background:#fff8e6;border:1px solid #f0d98a;border-radius:8px;padding:8px 12px;font-size:11.5px}
+  .pb{page-break-before:always}
+  ul{margin:6px 0 6px 18px;padding:0}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="cover">
+    <div><span class="chip">SEMINARIO</span><span class="chip">PROYECTO FINAL</span></div>
+    <h1>IRTRA Calidad IA — Aportes tecnológicos</h1>
+    <p class="muted">Caché (cache-aside con invalidación) y Tiempo real (Server-Sent Events) integrados al sistema de recepción, análisis y seguimiento de encuestas de calidad.</p>
+    <div class="meta">
+      <b>Integrantes</b><span>Javier Guerra (equipo de una persona)</span>
+      <b>Proyecto base</b><span>IRTRA Calidad IA — plataforma Next.js + PostgreSQL</span>
+      <b>Versión entregada</b><span>etiqueta <code>seminario-v1</code> en la rama <code>main</code></span>
+      <b>Fecha</b><span>2026-10-29</span>
+      <b>Repositorio</b><span><a href="https://github.com/javier2002guerra-lab/Seminario-IRTRA">https://github.com/javier2002guerra-lab/Seminario-IRTRA</a></span>
+    </div>
+  </div>
+
+  <h2>1. Análisis del problema y requerimientos</h2>
+  <p><b>Qué resuelve el sistema.</b> IRTRA Calidad IA recibe boletas de encuestas (escaneadas o cargadas), valida y analiza su contenido, prioriza quejas y sugerencias, asigna responsables con SLA, documenta la recuperación del huésped y genera el informe gerencial en Excel conservando macros. Sus usuarios principales son <b>verificadores</b> (operan dentro del alcance de sus áreas) y <b>administradores</b>.</p>
+  <p><b>Estado y alcance funcional.</b> El sistema ya contaba con ingesta segura, análisis, revisión humana, exportación <code>.xlsm</code>, MFA, roles, auditoría inmutable y un tablero ejecutivo con indicadores, alertas y pronóstico.</p>
+  <p><b>Necesidades detectadas (motivan los aportes).</b></p>
+  <ul>
+    <li><b>Rendimiento de lectura.</b> El tablero ejecutivo ejecuta <b>13 agregaciones</b> sobre PostgreSQL por cada carga y es el camino más consultado (inicio, alertas, reportes, ATLAS y el programador de informes). Recalcular en cada visita es costoso y no escala.</li>
+    <li><b>Visibilidad tardía.</b> Las encuestas recién escaneadas o confirmadas solo aparecían al <b>recargar</b> la página manualmente, retrasando la reacción operativa.</li>
+  </ul>
+  <p><b>Requerimientos de los aportes.</b> (R1) servir el tablero desde una caché con expiración e invalidación coherente tras cada escritura; (R2) propagar en tiempo real los cambios a las vistas abiertas respetando el alcance y los permisos; (R3) no degradar la seguridad ni la fidelidad de datos existentes; (R4) ser verificables y demostrables.</p>
+  <p><b>Atributos de calidad.</b> rendimiento, coherencia, disponibilidad (tolerancia a fallos del backend de caché), seguridad (sin fuga de datos fuera de alcance) y mantenibilidad.</p>
+
+  <h2>2. Diseño del sistema y diagramas</h2>
+  <h3>2.1 Arquitectura</h3>
+  <figure>
+    <pre class="mermaid" id="d1"></pre>
+    <figcaption>Componentes, responsabilidades y dependencias. Los dos aportes se integran en el servidor Node y se conectan al camino de lectura (caché) y de escritura (invalidación + eventos).</figcaption>
+  </figure>
+
+  <div class="pb"></div>
+  <h3>2.2 Modelo de datos (entidades relevantes)</h3>
+  <figure>
+    <pre class="mermaid" id="d2"></pre>
+    <figcaption>Entidades que alimentan el tablero cacheado y que, al cambiar, disparan invalidación y notificación.</figcaption>
+  </figure>
+
+  <h3>2.3 Secuencia del flujo crítico</h3>
+  <figure>
+    <pre class="mermaid" id="d3"></pre>
+    <figcaption>Confirmación de una encuesta: la escritura invalida la caché (Aporte 1) y publica un evento SSE (Aporte 2); al refrescar, la vista recalcula una sola vez y vuelve a cachear.</figcaption>
+  </figure>
+
+  <div class="pb"></div>
+  <h2>3. Justificación de las dos elecciones (pertinencia y creatividad)</h2>
+  <table>
+    <tr><th>Criterio</th><th>Aporte 1 — Caché</th><th>Aporte 2 — Tiempo real (SSE)</th></tr>
+    <tr><td>Necesidad / riesgo</td><td>Carga repetida de 13 agregaciones pesadas en el camino más consultado.</td><td>Los cambios no se veían sin recargar manualmente.</td></tr>
+    <tr><td>Cómo se atendía antes</td><td>Cada visita recalculaba todo en la base de datos.</td><td>El usuario recargaba la página a mano.</td></tr>
+    <tr><td>Alternativas consideradas</td><td>(a) Vistas materializadas en PostgreSQL; (b) memoización por request; (c) <b>cache-aside en la app</b>.</td><td>(a) Polling periódico; (b) WebSockets; (c) <b>SSE</b>.</td></tr>
+    <tr><td>Por qué esta solución</td><td>Cache-aside no cambia el esquema, controla TTL e invalidación desde el dominio y permite backend local o Redis. Las vistas materializadas no invalidan al instante y añaden complejidad de esquema.</td><td>SSE es unidireccional (servidor→cliente), nativo del navegador (<code>EventSource</code> con reconexión), simple sobre HTTP/HTTPS existente y suficiente para notificar; WebSockets añade complejidad bidireccional innecesaria y el polling desperdicia consultas.</td></tr>
+    <tr><td>Componente beneficiado</td><td>Tablero ejecutivo (inicio, alertas, reportes, ATLAS, programador).</td><td>Todas las vistas autenticadas (aviso + refresco).</td></tr>
+    <tr><td>Costos / limitaciones</td><td>Datos con hasta TTL de antigüedad entre escrituras; memoria acotada (LRU); coherencia depende de invalidar en cada escritura.</td><td>Una conexión por pestaña; tope de clientes; es notificación (no entrega de datos sensibles).</td></tr>
+  </table>
+  <p><b>Creatividad / valor.</b> Reducción medible de latencia (~13×), menos carga en la base de datos y mejor experiencia (información viva sin recargar). Los dos aportes se refuerzan: la escritura invalida la caché y publica el evento, de modo que el refresco en vivo muestra siempre el dato correcto y recién recalculado.</p>
+
+  <h2>4. Descripción de la implementación</h2>
+  <h3>4.1 Aporte 1 — Caché (cache-aside, TTL e invalidación)</h3>
+  <ul>
+    <li><b>Patrón.</b> <code>cache.wrap(ns, clave, productor, ttl)</code>: consulta la caché; ante miss ejecuta el productor (las 13 consultas) y guarda el resultado.</li>
+    <li><b>Invalidación O(1) por versión de namespace.</b> Cada escritura llama <code>invalidateExecutive()</code>, que incrementa la versión del namespace; las claves previas dejan de coincidir al instante (coherencia inmediata).</li>
+    <li><b>Backend.</b> memoria por defecto (<code>MemoryStore</code>, LRU + TTL); Redis opcional (<code>CACHE_BACKEND=redis</code>) con la misma interfaz para escalado horizontal.</li>
+    <li><b>Singleton.</b> anclado a <code>globalThis</code> para que, en el empaquetado por rutas de Next, exista una única caché de proceso (la invalidación de las rutas afecta a la caché que leen las páginas).</li>
+    <li><b>Condición de error/límite.</b> si el almacén falla, <code>wrap</code> cae al productor (no rompe la petición); desalojo LRU acotado; <code>CACHE_ENABLED=false</code> lo desactiva.</li>
+    <li><b>Archivos.</b> <code>lib/cache.js</code>, <code>lib/cache-redis.js</code>, <code>lib/executive.js</code>, <code>lib/live.js</code>, <code>app/api/cache/stats/route.js</code>.</li>
+  </ul>
+  <h3>4.2 Aporte 2 — Tiempo real (SSE)</h3>
+  <ul>
+    <li><b>Bus de eventos</b> (<code>lib/events.js</code>): publicación/suscripción en proceso con ids monótonos y cupo de clientes; singleton en <code>globalThis</code>.</li>
+    <li><b>Endpoint SSE</b> (<code>app/api/stream/route.js</code>): respuesta <code>text/event-stream</code> autenticada, heartbeat cada 15 s, limpieza al desconectar y tope <code>SSE_MAX_CLIENTS</code> (responde 503).</li>
+    <li><b>Cliente</b> (<code>components/LiveUpdates.js</code>): <code>EventSource</code> que muestra un aviso y ejecuta <code>router.refresh()</code> (con <i>debounce</i>).</li>
+    <li><b>Publicación</b> en <code>lib/ingest.js</code> y rutas de escritura (<code>validation</code>, <code>reanalyze</code>, <code>recovery</code>, <code>surveys/[id]</code>, <code>actions</code>).</li>
+    <li><b>Seguridad.</b> el evento solo lleva tipo e identificadores (sin PII); el refresco vuelve a consultar respetando el alcance del usuario, así el tiempo real no filtra información fuera de alcance.</li>
+    <li><b>Condición de error/límite.</b> <code>EventSource</code> reconecta solo (<code>retry: 5000</code>); heartbeat; tope de conexiones; limpieza de la suscripción al abortar.</li>
+  </ul>
+  <h3>4.3 Cómo ejecutar y comprobar</h3>
+  <pre class="code">npm run qa:setup        # base de pruebas local aislada (una vez)
+npm run qa:test         # unitarias + integración (incluye cache/events/executive-cache)
+node --env-file=.env.qa.local scripts/cache-benchmark.mjs   # rendimiento de caché
+npm run qa:build && npm run qa:serve     # app en https://localhost:3444
+npm run qa:playwright   # E2E de ambos aportes (e2e/aportes.spec.mjs)</pre>
+
+  <div class="pb"></div>
+  <h2>5. Evidencias y resultados de verificación</h2>
+  <h3>5.1 Pruebas automatizadas</h3>
+  <table>
+    <tr><th>Nivel</th><th>Archivo</th><th>Qué verifica</th><th>Resultado</th></tr>
+    <tr><td>Unitaria</td><td><code>tests/cache.test.mjs</code> (9)</td><td>hit/miss, expiración, invalidación, coherencia, LRU, aislamiento, tolerancia a fallos, interruptor, métricas.</td><td>✔ pasa</td></tr>
+    <tr><td>Unitaria</td><td><code>tests/events.test.mjs</code> (7)</td><td>entrega, ids monótonos, unsubscribe, formato SSE, sin fuga de datos, cupo de clientes.</td><td>✔ pasa</td></tr>
+    <tr><td>Integración</td><td><code>tests/executive-cache.test.mjs</code> (2)</td><td>el tablero usa cache-aside (hit en 2ª carga) e invalidar fuerza recalcular.</td><td>✔ pasa</td></tr>
+    <tr><td>E2E</td><td><code>e2e/aportes.spec.mjs</code> (1)</td><td>sobre la app real: caché con hits, confirmación propagada en vivo por SSE + aviso, e invalidación coherente.</td><td>✔ pasa</td></tr>
+  </table>
+  <p class="muted">Suite completa contra PostgreSQL: <b>93/93</b> pruebas en verde.</p>
+
+  <h3>5.2 Rendimiento de la caché (benchmark)</h3>
+  <div class="kpi">
+    <div><b>9.68 ms</b><span class="muted">promedio sin caché</span></div>
+    <div><b>0.71 ms</b><span class="muted">promedio con caché</span></div>
+    <div><b>~13.6×</b><span class="muted">mejora promedio</span></div>
+    <div><b>96%</b><span class="muted">tasa de acierto</span></div>
+  </div>
+  <p class="muted">Fuente: <code>auditoria/evidencias/CACHE_BENCHMARK.json</code> (25 cargas por escenario). La mejora relativa crece con el volumen real de datos.</p>
+
+  <h3>5.3 Evidencia en vivo (SSE)</h3>
+  <div class="two">
+    <figure><img class="shot" src="img/aporte-live-toast.png" alt="Aviso en vivo"/><figcaption>Indicador de conexión en vivo (punto verde) y aviso «Encuesta confirmada» tras una escritura real, sin recargar.</figcaption></figure>
+    <figure><img class="shot" src="img/aporte-dashboard.png" alt="Tablero"/><figcaption>Tablero ejecutivo servido desde caché y actualizado en vivo.</figcaption></figure>
+  </div>
+
+  <h2>6. Limitaciones y trabajo pendiente</h2>
+  <ul>
+    <li>La caché en memoria es por proceso; para varias instancias usar <code>CACHE_BACKEND=redis</code> (invalidación por <code>INCR</code> atómico ya soportada).</li>
+    <li>El tiempo real notifica y refresca; no entrega el delta de datos (decisión de seguridad). Un siguiente paso sería enviar contadores por rol firmados.</li>
+    <li>Entre escrituras, el tablero puede mostrar datos con hasta <code>CACHE_TTL_MS</code> de antigüedad (por defecto 60 s).</li>
+    <li>SSE mantiene una conexión por pestaña; el tope <code>SSE_MAX_CLIENTS</code> protege el proceso pero conviene dimensionarlo según despliegue.</li>
+  </ul>
+
+  <h2>7. Enlaces al código y evidencias</h2>
+  <p><b>Repositorio:</b> <a href="https://github.com/javier2002guerra-lab/Seminario-IRTRA">https://github.com/javier2002guerra-lab/Seminario-IRTRA</a> (versión entregada: etiqueta <code>seminario-v1</code>). <b>CI:</b> <a href="https://github.com/javier2002guerra-lab/Seminario-IRTRA/actions">https://github.com/javier2002guerra-lab/Seminario-IRTRA/actions</a> (<code>.github/workflows/ci.yml</code>).</p>
+  <ul>
+    <li>Código de los aportes: <code>lib/cache.js</code>, <code>lib/cache-redis.js</code>, <code>lib/events.js</code>, <code>lib/live.js</code>, <code>app/api/stream/route.js</code>, <code>app/api/cache/stats/route.js</code>, <code>components/LiveUpdates.js</code>, integración en <code>lib/executive.js</code>, <code>lib/ingest.js</code> y rutas de escritura.</li>
+    <li>Pruebas: <code>tests/cache.test.mjs</code>, <code>tests/events.test.mjs</code>, <code>tests/executive-cache.test.mjs</code>, <code>e2e/aportes.spec.mjs</code>.</li>
+    <li>Evidencias: <code>auditoria/evidencias/CACHE_BENCHMARK.json</code> y capturas en <code>docs/informe/img/</code>.</li>
+    <li>Diagramas editables: <code>docs/diagramas/*.mmd</code>.</li>
+  </ul>
+
+  <h2>8. Contribuciones</h2>
+  <p><b>Javier Guerra</b> — autoría integral de los aportes de Seminario: análisis del problema, diseño (diagramas de arquitectura, datos y secuencia), implementación del Aporte 1 (caché cache-aside con TTL, LRU, invalidación por versión y backend Redis opcional) y del Aporte 2 (bus de eventos, endpoint SSE y cliente en vivo), integración con las rutas de escritura, pruebas unitarias, de integración y E2E, benchmark de rendimiento, flujo de CI y documentación. El proyecto base IRTRA Calidad IA sobre el que se integran los aportes se desarrolló previamente como Proyecto de Graduación.</p>
+
+</div>
+<script>
+  const sources = {
+    d1: `__D1__`,
+    d2: `__D2__`,
+    d3: `__D3__`,
+  };
+  for (const [id, code] of Object.entries(sources)) document.getElementById(id).textContent = code;
+  mermaid.initialize({ startOnLoad: false, theme: "neutral", securityLevel: "loose", flowchart: { useMaxWidth: true }, er: { useMaxWidth: true }, sequence: { useMaxWidth: true } });
+  window.__mermaidReady = false;
+  mermaid.run({ querySelector: ".mermaid" }).then(() => { window.__mermaidReady = true; });
+</script>
+</body>
+</html>

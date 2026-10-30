@@ -1,0 +1,11 @@
+node : (node:2300) Warning: Setting the NODE_TLS_REJECT_UNAUTHORIZED environment variable to '0' makes TLS connections 
+and HTTPS requests insecure by disabling certificate verification.
+En línea: 2 Carácter: 1
++ node scripts/qa.mjs load *> .qa/load.log; Get-Content .qa/load.log; n ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ((node:2300) War...e verification.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+(Use `node --trace-warnings ...` to show where the warning was created)
+/api/health: 131.6 req/s · p99 421 ms · errores 0
+/login: 80.0 req/s · p99 284 ms · errores 0

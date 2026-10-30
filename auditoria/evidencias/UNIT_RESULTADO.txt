@@ -1,0 +1,395 @@
+TAP version 13
+# (node:26280) ExperimentalWarning: Importing JSON modules is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: conserva ceros iniciales, valores nulos y transcripción; deriva el puntaje de la opción
+ok 1 - conserva ceros iniciales, valores nulos y transcripción; deriva el puntaje de la opción
+  ---
+  duration_ms: 5.2262
+  ...
+# Subtest: rechaza confianza fuera de rango
+ok 2 - rechaza confianza fuera de rango
+  ---
+  duration_ms: 1.298
+  ...
+# Subtest: rechaza confianza textual
+ok 3 - rechaza confianza textual
+  ---
+  duration_ms: 0.6111
+  ...
+# Subtest: rechaza categoría inventada
+ok 4 - rechaza categoría inventada
+  ---
+  duration_ms: 0.7094
+  ...
+# Subtest: rechaza prioridad inventada
+ok 5 - rechaza prioridad inventada
+  ---
+  duration_ms: 0.9807
+  ...
+# Subtest: rechaza tipo de documento ambiguo
+ok 6 - rechaza tipo de documento ambiguo
+  ---
+  duration_ms: 0.845
+  ...
+# Subtest: rechaza pregunta omitida
+ok 7 - rechaza pregunta omitida
+  ---
+  duration_ms: 1.0946
+  ...
+# Subtest: rechaza dato general numérico
+ok 8 - rechaza dato general numérico
+  ---
+  duration_ms: 0.7351
+  ...
+# Subtest: rechaza área no autorizada
+ok 9 - rechaza área no autorizada
+  ---
+  duration_ms: 2.3014
+  ...
+# Subtest: rechaza opción de servicio inventada
+ok 10 - rechaza opción de servicio inventada
+  ---
+  duration_ms: 2.0912
+  ...
+# Subtest: rechaza servicio duplicado
+ok 11 - rechaza servicio duplicado
+  ---
+  duration_ms: 1.0621
+  ...
+# Subtest: rechaza evidencia sin texto
+ok 12 - rechaza evidencia sin texto
+  ---
+  duration_ms: 1.2128
+  ...
+# Subtest: advertencias, evidencia ausente y confianza indefinida obligan revisión
+ok 13 - advertencias, evidencia ausente y confianza indefinida obligan revisión
+  ---
+  duration_ms: 0.7156
+  ...
+# Subtest: el modo de revisión humana devuelve datos independientes entre documentos
+ok 14 - el modo de revisión humana devuelve datos independientes entre documentos
+  ---
+  duration_ms: 1.7121
+  ...
+# (node:19224) ExperimentalWarning: Importing JSON modules is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: sin aprobación para IA externa obliga revisión humana
+ok 15 - sin aprobación para IA externa obliga revisión humana
+  ---
+  duration_ms: 4.7252
+  ...
+# Subtest: rechaza respuesta inválida del modelo
+ok 16 - rechaza respuesta inválida del modelo
+  ---
+  duration_ms: 1.7601
+  ...
+# Subtest: procesa 100 trabajos sin exceder la concurrencia ni mezclar resultados
+ok 17 - procesa 100 trabajos sin exceder la concurrencia ni mezclar resultados
+  ---
+  duration_ms: 238.0641
+  ...
+# Subtest: normaliza valores inseguros de concurrencia
+ok 18 - normaliza valores inseguros de concurrencia
+  ---
+  duration_ms: 0.7147
+  ...
+# Subtest: la descarga usa la plantilla limpia aprobada
+ok 19 - la descarga usa la plantilla limpia aprobada
+  ---
+  duration_ms: 1360.8154
+  ...
+# Subtest: la plantilla conserva las cuatro acciones de botones reparadas
+ok 20 - la plantilla conserva las cuatro acciones de botones reparadas
+  ---
+  duration_ms: 3279.9194
+  ...
+# Subtest: el endpoint y el generador manual exportan solo encuestas confirmadas
+ok 21 - el endpoint y el generador manual exportan solo encuestas confirmadas
+  ---
+  duration_ms: 4.1173
+  ...
+# Subtest: la auditoría es inmutable
+ok 22 - la auditoría es inmutable
+  ---
+  duration_ms: 761.1642
+  ...
+# Subtest: orden empresarial de prioridades
+ok 23 - orden empresarial de prioridades
+  ---
+  duration_ms: 2.3745
+  ...
+# Subtest: un caso crítico siempre requiere revisión y no puede cerrar
+ok 24 - un caso crítico siempre requiere revisión y no puede cerrar
+  ---
+  duration_ms: 0.656
+  ...
+# Subtest: una respuesta ambigua o sin área requiere revisión
+ok 25 - una respuesta ambigua o sin área requiere revisión
+  ---
+  duration_ms: 0.6734
+  ...
+# Subtest: una sugerencia baja confiable no requiere revisión
+ok 26 - una sugerencia baja confiable no requiere revisión
+  ---
+  duration_ms: 0.5884
+  ...
+# Subtest: niveles desconocidos van al final
+ok 27 - niveles desconocidos van al final
+  ---
+  duration_ms: 0.4423
+  ...
+# Subtest: clasifica el riesgo de SLA
+ok 28 - clasifica el riesgo de SLA
+  ---
+  duration_ms: 1.1881
+  ...
+# Subtest: las transacciones confirman y revierten de forma atómica
+ok 29 - las transacciones confirman y revierten de forma atómica
+  ---
+  duration_ms: 222.5666
+  ...
+# Subtest: el formato editable muestra Lugar de origen, Hotel y Restaurante en la misma fila
+ok 30 - el formato editable muestra Lugar de origen, Hotel y Restaurante en la misma fila
+  ---
+  duration_ms: 1.9261
+  ...
+# Subtest: el guardado conserva Restaurante, Hotel y Lugar de origen
+ok 31 - el guardado conserva Restaurante, Hotel y Lugar de origen
+  ---
+  duration_ms: 0.7366
+  ...
+# Subtest: no convierte respuestas ausentes en Sí y conserva semántica de fechas y servicios
+ok 32 - no convierte respuestas ausentes en Sí y conserva semántica de fechas y servicios
+  ---
+  duration_ms: 3071.9433
+  ...
+# Subtest: verifica todos los meses, catorce servicios, calificaciones, restaurantes y hoteles
+ok 33 - verifica todos los meses, catorce servicios, calificaciones, restaurantes y hoteles
+  ---
+  duration_ms: 8235.02
+  ...
+# Subtest: normaliza la fila exportable sin perder datos extraídos
+ok 34 - normaliza la fila exportable sin perder datos extraídos
+  ---
+  duration_ms: 1.9274
+  ...
+# Subtest: lee de PostgreSQL solo encuestas confirmadas y conserva extracción y calificaciones
+ok 35 - lee de PostgreSQL solo encuestas confirmadas y conserva extracción y calificaciones
+  ---
+  duration_ms: 131.6596
+  ...
+# Subtest: genera XLSM íntegro y coloca exactamente los datos de las encuestas
+ok 36 - genera XLSM íntegro y coloca exactamente los datos de las encuestas
+  ---
+  duration_ms: 15290.4389
+  ...
+# Subtest: genera XLSX estadístico válido con fechas, porcentajes y texto seguro
+ok 37 - genera XLSX estadístico válido con fechas, porcentajes y texto seguro
+  ---
+  duration_ms: 7460.3467
+  ...
+# (node:2552) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+# (Use `node --trace-deprecation ...` to show where the warning was created)
+# Subtest: excluye errores de indicadores y no convierte felicitaciones en problemas a corregir
+ok 38 - excluye errores de indicadores y no convierte felicitaciones en problemas a corregir
+  ---
+  duration_ms: 281.6685
+  ...
+# (node:13444) ExperimentalWarning: Importing JSON modules is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: acepta PNG válido
+ok 39 - acepta PNG válido
+  ---
+  duration_ms: 15.1278
+  ...
+# Subtest: rechaza extensión falsa
+ok 40 - rechaza extensión falsa
+  ---
+  duration_ms: 2.2545
+  ...
+# Subtest: rechaza MIME discordante
+ok 41 - rechaza MIME discordante
+  ---
+  duration_ms: 3.0961
+  ...
+# Subtest: rechaza archivo vacío
+ok 42 - rechaza archivo vacío
+  ---
+  duration_ms: 0.6324
+  ...
+# Subtest: rechaza archivo demasiado grande
+ok 43 - rechaza archivo demasiado grande
+  ---
+  duration_ms: 0.6104
+  ...
+# Subtest: rechaza PDF corrupto con cabecera aparente
+ok 44 - rechaza PDF corrupto con cabecera aparente
+  ---
+  duration_ms: 0.6572
+  ...
+# Subtest: rechaza PDF con JavaScript o acciones activas
+ok 45 - rechaza PDF con JavaScript o acciones activas
+  ---
+  duration_ms: 0.6029
+  ...
+# Subtest: rechaza imagen ilegible con firma aparente
+ok 46 - rechaza imagen ilegible con firma aparente
+  ---
+  duration_ms: 12.1658
+  ...
+# Subtest: respeta UPLOAD_DIR también en modo producción
+ok 47 - respeta UPLOAD_DIR también en modo producción
+  ---
+  duration_ms: 1.5775
+  ...
+# Subtest: lee una respuesta JSON válida
+ok 48 - lee una respuesta JSON válida
+  ---
+  duration_ms: 166.3146
+  ...
+# Subtest: maneja una respuesta vacía sin lanzar SyntaxError
+ok 49 - maneja una respuesta vacía sin lanzar SyntaxError
+  ---
+  duration_ms: 1.8098
+  ...
+# Subtest: maneja HTML de error sin exponer su contenido
+ok 50 - maneja HTML de error sin exponer su contenido
+  ---
+  duration_ms: 4.1231
+  ...
+# (node:2120) ExperimentalWarning: Importing JSON modules is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: ingiere, persiste y limpia un documento ficticio sin servicio externo
+ok 51 - ingiere, persiste y limpia un documento ficticio sin servicio externo
+  ---
+  duration_ms: 1506.8992
+  ...
+# Subtest: ClamAV permite un documento limpio y bloquea malware
+ok 52 - ClamAV permite un documento limpio y bloquea malware
+  ---
+  duration_ms: 189.0096
+  ...
+# Subtest: TOTP coincide con el vector RFC 6238
+ok 53 - TOTP coincide con el vector RFC 6238
+  ---
+  duration_ms: 7.0746
+  ...
+# Subtest: MFA cifra el secreto y rechaza reutilizar un contador
+ok 54 - MFA cifra el secreto y rechaza reutilizar un contador
+  ---
+  duration_ms: 10.9823
+  ...
+# Subtest: los códigos de recuperación son únicos y se almacenan con hash
+ok 55 - los códigos de recuperación son únicos y se almacenan con hash
+  ---
+  duration_ms: 4.9912
+  ...
+# Subtest: el visor permite que Edge muestre los PDF escaneados
+ok 56 - el visor permite que Edge muestre los PDF escaneados
+  ---
+  duration_ms: 4.0129
+  ...
+# Subtest: las dependencias Python de Excel coinciden exactamente con el lockfile
+ok 57 - las dependencias Python de Excel coinciden exactamente con el lockfile
+  ---
+  duration_ms: 1299.0151
+  ...
+# Subtest: las listas dinámicas de filtros y SLA tienen claves React estables
+ok 58 - las listas dinámicas de filtros y SLA tienen claves React estables
+  ---
+  duration_ms: 6.9052
+  ...
+# Subtest: ambos reportes rechazan fechas imposibles y rangos invertidos
+ok 59 - ambos reportes rechazan fechas imposibles y rangos invertidos
+  ---
+  duration_ms: 8.838
+  ...
+# Subtest: acepta exportaciones de cualquier intervalo de fechas
+ok 60 - acepta exportaciones de cualquier intervalo de fechas
+  ---
+  duration_ms: 1.6833
+  ...
+# Subtest: rechaza únicamente rangos invertidos
+ok 61 - rechaza únicamente rangos invertidos
+  ---
+  duration_ms: 3.8148
+  ...
+# Subtest: calcula meses completos y el mes anterior
+ok 62 - calcula meses completos y el mes anterior
+  ---
+  duration_ms: 5.216
+  ...
+# Subtest: un verificador solo accede a encuestas de sus áreas
+ok 63 - un verificador solo accede a encuestas de sus áreas
+  ---
+  duration_ms: 438.3185
+  ...
+# Subtest: las llaves de bloqueo no exponen correo ni dirección IP
+ok 64 - las llaves de bloqueo no exponen correo ni dirección IP
+  ---
+  duration_ms: 5.8837
+  ...
+# Subtest: solo acepta identificadores enteros positivos seguros
+ok 65 - solo acepta identificadores enteros positivos seguros
+  ---
+  duration_ms: 0.7788
+  ...
+# Subtest: un verificador no obtiene privilegios administrativos
+ok 66 - un verificador no obtiene privilegios administrativos
+  ---
+  duration_ms: 6.0231
+  ...
+# Subtest: la política CSP no permite scripts inline sin nonce
+ok 67 - la política CSP no permite scripts inline sin nonce
+  ---
+  duration_ms: 3.0149
+  ...
+# Subtest: no confía en cabeceras de IP sin un proxy autorizado
+ok 68 - no confía en cabeceras de IP sin un proxy autorizado
+  ---
+  duration_ms: 55.2856
+  ...
+# Subtest: la descarga de originales aplica sandbox incluso en vista previa
+ok 69 - la descarga de originales aplica sandbox incluso en vista previa
+  ---
+  duration_ms: 1.8923
+  ...
+# Subtest: el almacenamiento externo no fuerza a empaquetar todo el proyecto
+ok 70 - el almacenamiento externo no fuerza a empaquetar todo el proyecto
+  ---
+  duration_ms: 1.4533
+  ...
+# Subtest: la retención elimina también los datos de recuperación del huésped
+ok 71 - la retención elimina también los datos de recuperación del huésped
+  ---
+  duration_ms: 2.2749
+  ...
+# Subtest: producción rechaza una contraseña inicial ausente
+ok 72 - producción rechaza una contraseña inicial ausente
+  ---
+  duration_ms: 4.7446
+  ...
+# Subtest: el formulario de acceso nunca degrada a un GET con credenciales
+ok 73 - el formulario de acceso nunca degrada a un GET con credenciales
+  ---
+  duration_ms: 2.8468
+  ...
+# Subtest: los secretos locales y certificados están excluidos de Git
+ok 74 - los secretos locales y certificados están excluidos de Git
+  ---
+  duration_ms: 1.7378
+  ...
+# Subtest: el build elimina cachés que podrían conservar variables de entorno
+ok 75 - el build elimina cachés que podrían conservar variables de entorno
+  ---
+  duration_ms: 2.4744
+  ...
+1..75
+# tests 75
+# suites 0
+# pass 75
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 36685.2316
